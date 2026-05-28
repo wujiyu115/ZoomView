@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoomview/features/browser/providers/browser_provider.dart';
 import 'package:zoomview/features/settings/models/settings_model.dart';
 import 'package:zoomview/features/settings/providers/settings_provider.dart';
+import 'package:zoomview/features/bookmarks/providers/bookmark_provider.dart';
+import 'package:zoomview/features/bookmarks/widgets/bookmark_screen.dart';
 import 'package:zoomview/features/settings/widgets/settings_screen.dart';
 import 'toolbar.dart';
 import 'url_bar.dart';
@@ -45,7 +47,16 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
             onHome: () => _activeController?.loadUrl(
               urlRequest: URLRequest(url: WebUri(settings.homeUrl)),
             ),
-            onBookmarks: () => _pushPlaceholder(context, 'Bookmarks'),
+            onBookmarks: () async {
+              final url = await Navigator.push<String>(
+                context,
+                MaterialPageRoute(builder: (_) => const BookmarkScreen()),
+              );
+              if (url != null) {
+                _activeController?.loadUrl(
+                    urlRequest: URLRequest(url: WebUri(url)));
+              }
+            },
             onRefresh: () => _activeController?.reload(),
             onBack: () => _activeController?.goBack(),
             onForward: () => _activeController?.goForward(),
@@ -160,7 +171,17 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
             ListTile(
               leading: const Icon(Icons.bookmark_add),
               title: const Text('Add Bookmark'),
-              onTap: () => Navigator.pop(ctx),
+              onTap: () {
+                Navigator.pop(ctx);
+                final tab = ref.read(browserProvider).activeTab;
+                ref.read(bookmarkProvider.notifier).addBookmark(
+                      tab.title.isEmpty ? tab.url : tab.title,
+                      tab.url,
+                    );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Bookmark added')),
+                );
+              },
             ),
             ListTile(
               leading: const Icon(Icons.history),
