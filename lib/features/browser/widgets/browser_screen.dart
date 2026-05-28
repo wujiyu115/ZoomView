@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:zoomview/features/browser/providers/browser_provider.dart';
 import 'package:zoomview/features/settings/models/settings_model.dart';
 import 'package:zoomview/features/settings/providers/settings_provider.dart';
@@ -142,12 +143,19 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
             ListTile(
               leading: const Icon(Icons.share),
               title: const Text('Share'),
-              onTap: () => Navigator.pop(ctx),
+              onTap: () {
+                Navigator.pop(ctx);
+                final url = ref.read(browserProvider).activeTab.url;
+                SharePlus.instance.share(ShareParams(uri: Uri.parse(url)));
+              },
             ),
             ListTile(
               leading: const Icon(Icons.search),
               title: const Text('Find in Page'),
-              onTap: () => Navigator.pop(ctx),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showFindInPage();
+              },
             ),
             ListTile(
               leading: const Icon(Icons.desktop_mac),
@@ -200,6 +208,52 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showFindInPage() {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) {
+        final controller = TextEditingController();
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(
+                    hintText: 'Find in page...',
+                    border: OutlineInputBorder(),
+                  ),
+                  autofocus: true,
+                  onSubmitted: (query) {
+                    _activeController?.findAllAsync(find: query);
+                  },
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.arrow_upward),
+                onPressed: () =>
+                    _activeController?.findNext(forward: false),
+              ),
+              IconButton(
+                icon: const Icon(Icons.arrow_downward),
+                onPressed: () =>
+                    _activeController?.findNext(forward: true),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () {
+                  _activeController?.clearMatches();
+                  Navigator.pop(ctx);
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

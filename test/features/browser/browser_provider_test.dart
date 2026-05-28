@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zoomview/features/browser/models/tab_model.dart';
 import 'package:zoomview/features/browser/providers/browser_provider.dart';
 
 void main() {
