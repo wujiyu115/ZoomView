@@ -8,6 +8,7 @@ import 'package:zoomview/features/settings/widgets/settings_screen.dart';
 import 'toolbar.dart';
 import 'url_bar.dart';
 import 'zoom_slider.dart';
+import 'tab_manager.dart';
 import 'webview_container.dart';
 
 class BrowserScreen extends ConsumerStatefulWidget {
@@ -53,7 +54,10 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
               context,
               MaterialPageRoute(builder: (_) => const SettingsScreen()),
             ),
-            onTabs: () => _pushPlaceholder(context, 'Tabs'),
+            onTabs: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const TabManager()),
+            ),
             onDownloads: () => _pushPlaceholder(context, 'Downloads'),
           ),
           UrlBar(
