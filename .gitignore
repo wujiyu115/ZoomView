@@ -43,3 +43,27 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Environment & secrets
+.env
+*.jks
+*.keystore
+key.properties
+
+# Generated
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+.flutter-plugins
+
+# IDE
+.vscode/
+*.code-workspace
+
+# OS
+Thumbs.db
+*~
+
+# Pods
+ios/Pods/
+ios/.symlinks/
