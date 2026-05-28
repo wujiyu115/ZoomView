@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:zoomview/l10n/app_localizations.dart';
 import 'dart:io';
 import '../providers/download_provider.dart';
 import '../models/download_model.dart';
@@ -22,10 +23,11 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
   @override
   Widget build(BuildContext context) {
     final downloads = ref.watch(downloadProvider);
+    final l = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Downloads')),
+      appBar: AppBar(title: Text(l.downloads)),
       body: downloads.isEmpty
-          ? const Center(child: Text('No downloads'))
+          ? Center(child: Text(l.noDownloads))
           : ListView.builder(
               itemCount: downloads.length,
               itemBuilder: (context, index) {

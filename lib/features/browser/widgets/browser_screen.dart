@@ -12,6 +12,7 @@ import 'package:zoomview/features/history/widgets/history_screen.dart';
 import 'package:zoomview/features/settings/widgets/settings_screen.dart';
 import 'package:zoomview/features/downloads/widgets/download_screen.dart';
 import 'package:zoomview/features/downloads/providers/download_provider.dart';
+import 'package:zoomview/l10n/app_localizations.dart';
 import 'toolbar.dart';
 import 'url_bar.dart';
 import 'zoom_slider.dart';
@@ -36,7 +37,6 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
   @override
   void initState() {
     super.initState();
-    // Load persisted settings on first launch
     Future.microtask(() => ref.read(settingsProvider.notifier).load());
   }
 
@@ -134,6 +134,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
   }
 
   void _showMoreMenu(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       builder: (ctx) => SafeArea(
@@ -142,7 +143,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.share),
-              title: const Text('Share'),
+              title: Text(l.share),
               onTap: () {
                 Navigator.pop(ctx);
                 final url = ref.read(browserProvider).activeTab.url;
@@ -151,7 +152,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.search),
-              title: const Text('Find in Page'),
+              title: Text(l.findInPage),
               onTap: () {
                 Navigator.pop(ctx);
                 _showFindInPage();
@@ -161,8 +162,8 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
               leading: const Icon(Icons.desktop_mac),
               title: Text(
                 ref.read(settingsProvider).uaMode == UaMode.desktop
-                    ? 'Switch to Mobile Mode'
-                    : 'Switch to Desktop Mode',
+                    ? l.switchToMobileMode
+                    : l.switchToDesktopMode,
               ),
               onTap: () {
                 Navigator.pop(ctx);
@@ -177,7 +178,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.bookmark_add),
-              title: const Text('Add Bookmark'),
+              title: Text(l.addBookmark),
               onTap: () {
                 Navigator.pop(ctx);
                 final tab = ref.read(browserProvider).activeTab;
@@ -186,13 +187,13 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
                       tab.url,
                     );
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Bookmark added')),
+                  SnackBar(content: Text(l.bookmarkAdded)),
                 );
               },
             ),
             ListTile(
               leading: const Icon(Icons.history),
-              title: const Text('History'),
+              title: Text(l.history),
               onTap: () async {
                 Navigator.pop(ctx);
                 final url = await Navigator.push<String>(
@@ -212,6 +213,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
   }
 
   void _showFindInPage() {
+    final l = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       builder: (ctx) {
@@ -223,9 +225,9 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
               Expanded(
                 child: TextField(
                   controller: controller,
-                  decoration: const InputDecoration(
-                    hintText: 'Find in page...',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    hintText: l.findInPageHint,
+                    border: const OutlineInputBorder(),
                   ),
                   autofocus: true,
                   onSubmitted: (query) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zoomview/l10n/app_localizations.dart';
 import '../models/bookmark_model.dart';
 import '../models/folder_model.dart';
 
@@ -24,9 +25,11 @@ class FolderTree extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+
     if (folders.isEmpty && bookmarks.isEmpty) {
-      return const Center(
-        child: Text('No bookmarks yet', style: TextStyle(color: Colors.grey)),
+      return Center(
+        child: Text(l.noBookmarksYet, style: const TextStyle(color: Colors.grey)),
       );
     }
 
@@ -61,6 +64,7 @@ class FolderTree extends StatelessWidget {
   }
 
   void _showFolderMenu(BuildContext context, BookmarkFolder folder) {
+    final l = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       builder: (ctx) => SafeArea(
@@ -69,7 +73,7 @@ class FolderTree extends StatelessWidget {
           children: [
             ListTile(
               leading: const Icon(Icons.delete),
-              title: const Text('Delete Folder'),
+              title: Text(l.deleteFolder),
               onTap: () {
                 Navigator.pop(ctx);
                 onFolderDelete(folder);
@@ -82,6 +86,7 @@ class FolderTree extends StatelessWidget {
   }
 
   void _showBookmarkMenu(BuildContext context, Bookmark bookmark) {
+    final l = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       builder: (ctx) => SafeArea(
@@ -90,7 +95,7 @@ class FolderTree extends StatelessWidget {
           children: [
             ListTile(
               leading: const Icon(Icons.drive_file_move),
-              title: const Text('Move to Folder'),
+              title: Text(l.moveToFolder),
               onTap: () {
                 Navigator.pop(ctx);
                 onBookmarkMove(bookmark);
@@ -98,7 +103,7 @@ class FolderTree extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.delete),
-              title: const Text('Delete'),
+              title: Text(l.delete),
               onTap: () {
                 Navigator.pop(ctx);
                 onBookmarkDelete(bookmark);

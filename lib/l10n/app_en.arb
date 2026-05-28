@@ -1,0 +1,85 @@
+{
+  "@@locale": "en",
+  "appTitle": "ZoomView",
+  "settings": "Settings",
+  "browsing": "Browsing",
+  "desktopMode": "Desktop Mode",
+  "desktopModeSubtitle": "Load websites in desktop layout",
+  "searchEngine": "Search Engine",
+  "homePage": "Home Page",
+  "homePageUrl": "Home Page URL",
+  "viewportWidth": "Viewport Width",
+  "viewportWidthValue": "{width}px",
+  "@viewportWidthValue": {
+    "placeholders": {
+      "width": {"type": "int"}
+    }
+  },
+  "zoom": "Zoom",
+  "defaultZoom": "Default Zoom",
+  "zoomPercent": "{percent}%",
+  "@zoomPercent": {
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
+  "privacy": "Privacy",
+  "clearCookies": "Clear Cookies",
+  "cookiesCleared": "Cookies cleared",
+  "clearCache": "Clear Cache",
+  "cacheCleared": "Cache cleared",
+  "appearance": "Appearance",
+  "darkMode": "Dark Mode",
+  "about": "About",
+  "zoomViewBrowser": "ZoomView Browser",
+  "version": "Version {version}",
+  "@version": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+  "cancel": "Cancel",
+  "save": "Save",
+  "create": "Create",
+  "delete": "Delete",
+  "urlHint": "https://...",
+  "bookmarks": "Bookmarks",
+  "searchBookmarks": "Search bookmarks...",
+  "newFolder": "New Folder",
+  "folderName": "Folder name",
+  "moveToFolder": "Move to Folder",
+  "rootNoFolder": "Root (no folder)",
+  "noFoldersAvailable": "No folders available",
+  "noBookmarksYet": "No bookmarks yet",
+  "deleteFolder": "Delete Folder",
+  "history": "History",
+  "searchHistory": "Search history...",
+  "noHistoryEntries": "No history entries",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "earlier": "Earlier",
+  "clearHistory": "Clear History",
+  "clearHistoryConfirm": "Are you sure you want to clear all history?",
+  "clear": "Clear",
+  "downloads": "Downloads",
+  "noDownloads": "No downloads",
+  "pending": "Pending",
+  "paused": "Paused",
+  "completed": "Completed",
+  "failed": "Failed",
+  "share": "Share",
+  "findInPage": "Find in Page",
+  "findInPageHint": "Find in page...",
+  "switchToMobileMode": "Switch to Mobile Mode",
+  "switchToDesktopMode": "Switch to Desktop Mode",
+  "addBookmark": "Add Bookmark",
+  "bookmarkAdded": "Bookmark added",
+  "tabsCount": "Tabs ({count})",
+  "@tabsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "newTab": "New Tab",
+  "back": "Back"
+}

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zoomview/l10n/app_localizations.dart';
 import '../models/history_model.dart';
 import '../providers/history_provider.dart';
 
@@ -28,10 +29,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final entries = ref.watch(historyProvider);
+    final l = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('History'),
+        title: Text(l.history),
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_sweep),
@@ -46,7 +48,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search history...',
+                hintText: l.searchHistory,
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
@@ -65,13 +67,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               ),
               onChanged: (query) {
                 ref.read(historyProvider.notifier).search(query);
-                setState(() {}); // rebuild to show/hide clear button
+                setState(() {});
               },
             ),
           ),
           Expanded(
             child: entries.isEmpty
-                ? const Center(child: Text('No history entries'))
+                ? Center(child: Text(l.noHistoryEntries))
                 : _buildGroupedList(entries),
           ),
         ],
@@ -80,6 +82,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 
   Widget _buildGroupedList(List<HistoryModel> entries) {
+    final l = AppLocalizations.of(context)!;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
@@ -106,15 +109,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     return ListView(
       children: [
         if (todayEntries.isNotEmpty) ...[
-          _buildSectionHeader('Today'),
+          _buildSectionHeader(l.today),
           ...todayEntries.map(_buildEntryTile),
         ],
         if (yesterdayEntries.isNotEmpty) ...[
-          _buildSectionHeader('Yesterday'),
+          _buildSectionHeader(l.yesterday),
           ...yesterdayEntries.map(_buildEntryTile),
         ],
         if (earlierEntries.isNotEmpty) ...[
-          _buildSectionHeader('Earlier'),
+          _buildSectionHeader(l.earlier),
           ...earlierEntries.map(_buildEntryTile),
         ],
       ],
@@ -166,22 +169,23 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 
   void _showClearDialog(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Clear History'),
-        content: const Text('Are you sure you want to clear all history?'),
+        title: Text(l.clearHistory),
+        content: Text(l.clearHistoryConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l.cancel),
           ),
           TextButton(
             onPressed: () {
               ref.read(historyProvider.notifier).clearAll();
               Navigator.pop(ctx);
             },
-            child: const Text('Clear'),
+            child: Text(l.clear),
           ),
         ],
       ),

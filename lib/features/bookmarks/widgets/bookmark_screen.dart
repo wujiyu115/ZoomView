@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zoomview/l10n/app_localizations.dart';
 import '../providers/bookmark_provider.dart';
 import 'folder_tree.dart';
 
@@ -28,10 +29,11 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(bookmarkProvider);
+    final l = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bookmarks'),
+        title: Text(l.bookmarks),
         leading: state.currentFolderId != null
             ? IconButton(
                 icon: const Icon(Icons.arrow_back),
@@ -53,7 +55,7 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search bookmarks...',
+                hintText: l.searchBookmarks,
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
@@ -71,7 +73,7 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> {
               ),
               onChanged: (query) {
                 ref.read(bookmarkProvider.notifier).search(query);
-                setState(() {}); // rebuild to show/hide clear button
+                setState(() {});
               },
             ),
           ),
@@ -108,20 +110,21 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> {
   }
 
   void _showCreateFolderDialog(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('New Folder'),
+        title: Text(l.newFolder),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'Folder name'),
+          decoration: InputDecoration(hintText: l.folderName),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -131,7 +134,7 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> {
                 Navigator.pop(ctx);
               }
             },
-            child: const Text('Create'),
+            child: Text(l.create),
           ),
         ],
       ),
@@ -140,11 +143,12 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> {
 
   void _showMoveDialog(
       BuildContext context, dynamic bookmark) {
+    final l = AppLocalizations.of(context)!;
     final repo = ref.read(bookmarkRepositoryProvider);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Move to Folder'),
+        title: Text(l.moveToFolder),
         content: FutureBuilder(
           future: repo.getFolders(),
           builder: (context, snapshot) {
@@ -153,7 +157,7 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> {
             }
             final folders = snapshot.data!;
             if (folders.isEmpty) {
-              return const Text('No folders available');
+              return Text(l.noFoldersAvailable);
             }
             return SizedBox(
               width: double.maxFinite,
@@ -162,7 +166,7 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> {
                 children: [
                   ListTile(
                     leading: const Icon(Icons.folder_open),
-                    title: const Text('Root (no folder)'),
+                    title: Text(l.rootNoFolder),
                     onTap: () {
                       ref
                           .read(bookmarkProvider.notifier)
@@ -189,7 +193,7 @@ class _BookmarkScreenState extends ConsumerState<BookmarkScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l.cancel),
           ),
         ],
       ),

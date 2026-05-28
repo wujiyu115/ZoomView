@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoomview/features/browser/providers/browser_provider.dart';
 import 'package:zoomview/core/constants.dart';
+import 'package:zoomview/l10n/app_localizations.dart';
 
 class TabManager extends ConsumerWidget {
   const TabManager({super.key});
@@ -9,10 +10,11 @@ class TabManager extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final browserState = ref.watch(browserProvider);
+    final l = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Tabs (${browserState.tabs.length})'),
+        title: Text(l.tabsCount(browserState.tabs.length)),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -65,7 +67,7 @@ class TabManager extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            tab.title.isEmpty ? 'New Tab' : tab.title,
+                            tab.title.isEmpty ? l.newTab : tab.title,
                             style: const TextStyle(fontSize: 12),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
