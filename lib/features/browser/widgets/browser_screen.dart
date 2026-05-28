@@ -6,6 +6,8 @@ import 'package:zoomview/features/settings/models/settings_model.dart';
 import 'package:zoomview/features/settings/providers/settings_provider.dart';
 import 'package:zoomview/features/bookmarks/providers/bookmark_provider.dart';
 import 'package:zoomview/features/bookmarks/widgets/bookmark_screen.dart';
+import 'package:zoomview/features/history/providers/history_provider.dart';
+import 'package:zoomview/features/history/widgets/history_screen.dart';
 import 'package:zoomview/features/settings/widgets/settings_screen.dart';
 import 'toolbar.dart';
 import 'url_bar.dart';
@@ -94,7 +96,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
                     _controllers[tab.id] = controller;
                   },
                   onPageLoaded: (title, url) {
-                    // History recording — will be wired in Task 14
+                    ref.read(historyProvider.notifier).addEntry(title, url);
                   },
                   onDownloadRequested: (request) {
                     // Download handling — will be wired in Task 14
@@ -186,9 +188,16 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
             ListTile(
               leading: const Icon(Icons.history),
               title: const Text('History'),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(ctx);
-                _pushPlaceholder(context, 'History');
+                final url = await Navigator.push<String>(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HistoryScreen()),
+                );
+                if (url != null) {
+                  _activeController?.loadUrl(
+                      urlRequest: URLRequest(url: WebUri(url)));
+                }
               },
             ),
           ],
