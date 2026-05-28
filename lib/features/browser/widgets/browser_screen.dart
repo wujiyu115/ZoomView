@@ -9,6 +9,8 @@ import 'package:zoomview/features/bookmarks/widgets/bookmark_screen.dart';
 import 'package:zoomview/features/history/providers/history_provider.dart';
 import 'package:zoomview/features/history/widgets/history_screen.dart';
 import 'package:zoomview/features/settings/widgets/settings_screen.dart';
+import 'package:zoomview/features/downloads/widgets/download_screen.dart';
+import 'package:zoomview/features/downloads/providers/download_provider.dart';
 import 'toolbar.dart';
 import 'url_bar.dart';
 import 'zoom_slider.dart';
@@ -71,7 +73,10 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
               context,
               MaterialPageRoute(builder: (_) => const TabManager()),
             ),
-            onDownloads: () => _pushPlaceholder(context, 'Downloads'),
+            onDownloads: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const DownloadScreen()),
+            ),
           ),
           UrlBar(
             url: browserState.activeTab.url,
@@ -99,7 +104,11 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
                     ref.read(historyProvider.notifier).addEntry(title, url);
                   },
                   onDownloadRequested: (request) {
-                    // Download handling — will be wired in Task 14
+                    final fileName = request.url.toString().split('/').last;
+                    ref.read(downloadProvider.notifier).startDownload(
+                          request.url.toString(),
+                          fileName.isEmpty ? 'download' : fileName,
+                        );
                   },
                 );
               }),
@@ -119,18 +128,6 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
             },
           ),
         ],
-      ),
-    );
-  }
-
-  void _pushPlaceholder(BuildContext context, String title) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => Scaffold(
-          appBar: AppBar(title: Text(title)),
-          body: const Center(child: Text('Coming soon')),
-        ),
       ),
     );
   }
