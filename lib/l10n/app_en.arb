@@ -81,5 +81,8 @@
     }
   },
   "newTab": "New Tab",
-  "back": "Back"
+  "back": "Back",
+  "downloadConfirmTitle": "Download File",
+  "download": "Download",
+  "downloading": "Downloading..."
 }

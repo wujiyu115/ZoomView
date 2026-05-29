@@ -61,5 +61,8 @@
   "bookmarkAdded": "书签已添加",
   "tabsCount": "标签页 ({count})",
   "newTab": "新标签页",
-  "back": "返回"
+  "back": "返回",
+  "downloadConfirmTitle": "下载文件",
+  "download": "下载",
+  "downloading": "下载中..."
 }

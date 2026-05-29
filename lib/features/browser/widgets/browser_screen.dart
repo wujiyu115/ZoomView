@@ -49,6 +49,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
       body: Column(
         children: [
           BrowserToolbar(
+            isDownloading: ref.watch(isDownloadingProvider),
             onHome: () => _activeController?.loadUrl(
               urlRequest: URLRequest(url: WebUri(settings.homeUrl)),
             ),
@@ -106,10 +107,10 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
                   },
                   onDownloadRequested: (request) {
                     final fileName = request.url.toString().split('/').last;
-                    ref.read(downloadProvider.notifier).startDownload(
-                          request.url.toString(),
-                          fileName.isEmpty ? 'download' : fileName,
-                        );
+                    _showDownloadConfirmDialog(
+                      request.url.toString(),
+                      fileName.isEmpty ? 'download' : fileName,
+                    );
                   },
                 );
               }),
@@ -130,6 +131,33 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
                 );
               }
             },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDownloadConfirmDialog(String url, String fileName) {
+    final l = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l.downloadConfirmTitle),
+        content: Text(fileName),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ref.read(downloadProvider.notifier).startDownload(url, fileName);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(l.downloading)),
+              );
+            },
+            child: Text(l.download),
           ),
         ],
       ),

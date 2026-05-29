@@ -201,4 +201,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get back => '返回';
+
+  @override
+  String get downloadConfirmTitle => '下载文件';
+
+  @override
+  String get download => '下载';
+
+  @override
+  String get downloading => '下载中...';
 }

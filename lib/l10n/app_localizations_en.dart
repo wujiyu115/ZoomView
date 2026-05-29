@@ -202,4 +202,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get back => 'Back';
+
+  @override
+  String get downloadConfirmTitle => 'Download File';
+
+  @override
+  String get download => 'Download';
+
+  @override
+  String get downloading => 'Downloading...';
 }

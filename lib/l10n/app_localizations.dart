@@ -469,6 +469,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back'**
   String get back;
+
+  /// No description provided for @downloadConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Download File'**
+  String get downloadConfirmTitle;
+
+  /// No description provided for @download.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get download;
+
+  /// No description provided for @downloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading...'**
+  String get downloading;
 }
 
 class _AppLocalizationsDelegate

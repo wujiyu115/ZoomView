@@ -14,6 +14,11 @@ final downloadProvider =
     NotifierProvider<DownloadNotifier, List<DownloadModel>>(
         DownloadNotifier.new);
 
+final isDownloadingProvider = Provider<bool>((ref) {
+  final downloads = ref.watch(downloadProvider);
+  return downloads.any((d) => d.status == DownloadStatus.downloading);
+});
+
 class DownloadNotifier extends Notifier<List<DownloadModel>> {
   @override
   List<DownloadModel> build() => [];

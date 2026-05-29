@@ -44,6 +44,9 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
         loadWithOverviewMode: true,
         supportZoom: true,
         javaScriptEnabled: true,
+        preferredContentMode: settings.uaMode == UaMode.desktop
+            ? UserPreferredContentMode.DESKTOP
+            : UserPreferredContentMode.MOBILE,
       ),
       onWebViewCreated: (controller) {
         widget.onControllerCreated(controller);
@@ -65,13 +68,28 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
           widget.onPageLoaded?.call(title, url.toString());
         }
 
-        // Force enable zoom on pages that disable it
-        await controller.evaluateJavascript(source: '''
-          var meta = document.querySelector('meta[name="viewport"]');
-          if (meta) {
-            meta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=10.0, user-scalable=yes');
-          }
-        ''');
+        // Force desktop viewport and enable zoom
+        final viewportWidth = settings.uaMode == UaMode.desktop
+            ? settings.viewportWidth
+            : 0;
+        if (viewportWidth > 0) {
+          await controller.evaluateJavascript(source: '''
+            var meta = document.querySelector('meta[name="viewport"]');
+            if (!meta) {
+              meta = document.createElement('meta');
+              meta.name = 'viewport';
+              document.head.appendChild(meta);
+            }
+            meta.setAttribute('content', 'width=$viewportWidth, initial-scale=0.25, maximum-scale=10.0, user-scalable=yes');
+          ''');
+        } else {
+          await controller.evaluateJavascript(source: '''
+            var meta = document.querySelector('meta[name="viewport"]');
+            if (meta) {
+              meta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=10.0, user-scalable=yes');
+            }
+          ''');
+        }
       },
       onProgressChanged: (controller, progress) {
         ref.read(browserProvider.notifier).setProgress(progress / 100.0);
