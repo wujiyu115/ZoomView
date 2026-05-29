@@ -50,7 +50,7 @@ class _UrlBarState extends State<UrlBar> {
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.grey[850],
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(24),
           ),
           child: Row(

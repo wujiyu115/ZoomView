@@ -28,7 +28,7 @@ class DownloadItemWidget extends StatelessWidget {
           if (download.status == DownloadStatus.downloading)
             LinearProgressIndicator(value: download.progressPercent),
           Text(_statusText(l),
-              style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
         ],
       ),
       trailing: Row(

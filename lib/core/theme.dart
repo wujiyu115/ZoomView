@@ -30,6 +30,16 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.light,
       colorSchemeSeed: Colors.blue,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFFF5F5F5),
+        foregroundColor: Colors.black,
+        elevation: 0,
+      ),
+      sliderTheme: const SliderThemeData(
+        activeTrackColor: Colors.blue,
+        thumbColor: Colors.white,
+        inactiveTrackColor: Colors.grey,
+      ),
     );
   }
 }
