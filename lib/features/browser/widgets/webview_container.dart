@@ -121,6 +121,9 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
         loadWithOverviewMode: true,
         supportZoom: true,
         javaScriptEnabled: true,
+        javaScriptCanOpenWindowsAutomatically: true,
+        domStorageEnabled: true,
+        databaseEnabled: true,
         preferredContentMode: settings.uaMode == UaMode.desktop
             ? UserPreferredContentMode.DESKTOP
             : UserPreferredContentMode.MOBILE,
@@ -131,11 +134,23 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
       ),
       onWebViewCreated: (controller) async {
         _controller = controller;
+        controller.evaluateJavascript(source: '''
+          Object.defineProperty(navigator, 'webdriver', {get: () => false});
+          if (!window.chrome) { window.chrome = { runtime: {} }; }
+          Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+          Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en', 'zh-CN']});
+        ''');
         widget.onControllerCreated(controller);
         final s = await controller.getSettings();
         debugPrint('[WebView] created: forceDark=${s?.forceDark}, algorithmicDarkening=${s?.algorithmicDarkeningAllowed}, darkMode=${settings.darkMode}');
       },
       onLoadStart: (controller, url) {
+        controller.evaluateJavascript(source: '''
+          Object.defineProperty(navigator, 'webdriver', {get: () => false});
+          if (!window.chrome) { window.chrome = { runtime: {} }; }
+          Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+          Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en', 'zh-CN']});
+        ''');
         ref.read(browserProvider.notifier).setLoading(true);
         if (url != null) {
           ref
