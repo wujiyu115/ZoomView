@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,6 +28,56 @@ class WebViewContainer extends ConsumerStatefulWidget {
 }
 
 class _WebViewContainerState extends ConsumerState<WebViewContainer> {
+  InAppWebViewController? _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    ref.listenManual(settingsProvider.select((s) => s.darkMode), (prev, next) {
+      debugPrint('[WebView] darkMode changed: $prev -> $next');
+      _applyDarkMode(next);
+    });
+  }
+
+  Future<void> _applyDarkMode(bool darkMode) async {
+    final controller = _controller;
+    if (controller == null) return;
+
+    await controller.setSettings(
+      settings: InAppWebViewSettings(
+        algorithmicDarkeningAllowed: darkMode,
+      ),
+    );
+
+    final scheme = darkMode ? 'dark' : 'light';
+    await controller.removeAllUserScripts();
+    await controller.addUserScript(userScript: UserScript(
+      source: '''
+        (function() {
+          var scheme = '$scheme';
+          var orig = window.matchMedia;
+          window.matchMedia = function(q) {
+            if (q.indexOf('prefers-color-scheme') !== -1) {
+              var m = orig.call(window, q);
+              var forced = q.indexOf(scheme) !== -1;
+              return Object.defineProperty(
+                Object.create(m),
+                'matches',
+                { get: function() { return forced; } }
+              );
+            }
+            return orig.call(window, q);
+          };
+          document.documentElement.style.colorScheme = scheme;
+        })();
+      ''',
+      injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+    ));
+
+    await controller.reload();
+    debugPrint('[WebView] applied darkMode=$darkMode, scheme=$scheme');
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
@@ -34,8 +85,34 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
         ? AppConstants.desktopUserAgent
         : AppConstants.mobileUserAgent;
 
+    final isDark = settings.darkMode;
+    final colorSchemeScript = UserScript(
+      source: '''
+        (function() {
+          var scheme = '${isDark ? 'dark' : 'light'}';
+          var anti  = '${isDark ? 'light' : 'dark'}';
+          var orig = window.matchMedia;
+          window.matchMedia = function(q) {
+            if (q.indexOf('prefers-color-scheme') !== -1) {
+              var m = orig.call(window, q);
+              var forced = q.indexOf(scheme) !== -1;
+              return Object.defineProperty(
+                Object.create(m),
+                'matches',
+                { get: function() { return forced; } }
+              );
+            }
+            return orig.call(window, q);
+          };
+          document.documentElement.style.colorScheme = scheme;
+        })();
+      ''',
+      injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
+    );
+
     return InAppWebView(
       initialUrlRequest: URLRequest(url: WebUri(widget.initialUrl)),
+      initialUserScripts: UnmodifiableListView([colorSchemeScript]),
       initialSettings: InAppWebViewSettings(
         userAgent: ua,
         builtInZoomControls: false,
@@ -47,9 +124,16 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
         preferredContentMode: settings.uaMode == UaMode.desktop
             ? UserPreferredContentMode.DESKTOP
             : UserPreferredContentMode.MOBILE,
+        forceDark: settings.darkMode ? ForceDark.ON : ForceDark.OFF,
+        forceDarkStrategy:
+            ForceDarkStrategy.PREFER_WEB_THEME_OVER_USER_AGENT_DARKENING,
+        algorithmicDarkeningAllowed: settings.darkMode,
       ),
-      onWebViewCreated: (controller) {
+      onWebViewCreated: (controller) async {
+        _controller = controller;
         widget.onControllerCreated(controller);
+        final s = await controller.getSettings();
+        debugPrint('[WebView] created: forceDark=${s?.forceDark}, algorithmicDarkening=${s?.algorithmicDarkeningAllowed}, darkMode=${settings.darkMode}');
       },
       onLoadStart: (controller, url) {
         ref.read(browserProvider.notifier).setLoading(true);
@@ -68,9 +152,24 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
           widget.onPageLoaded?.call(title, url.toString());
         }
 
+        final isDark = ref.read(settingsProvider).darkMode;
+        final colorScheme = isDark ? 'dark' : 'light';
+        await controller.evaluateJavascript(source: '''
+          document.documentElement.style.colorScheme = '$colorScheme';
+          var csMeta = document.querySelector('meta[name="color-scheme"]');
+          if (!csMeta) {
+            csMeta = document.createElement('meta');
+            csMeta.name = 'color-scheme';
+            document.head.appendChild(csMeta);
+          }
+          csMeta.setAttribute('content', '$colorScheme');
+        ''');
+        debugPrint('[WebView] onLoadStop: injected colorScheme=$colorScheme');
+
         // Force desktop viewport and enable zoom
-        final viewportWidth = settings.uaMode == UaMode.desktop
-            ? settings.viewportWidth
+        final viewportSettings = ref.read(settingsProvider);
+        final viewportWidth = viewportSettings.uaMode == UaMode.desktop
+            ? viewportSettings.viewportWidth
             : 0;
         if (viewportWidth > 0) {
           await controller.evaluateJavascript(source: '''

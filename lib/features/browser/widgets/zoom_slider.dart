@@ -17,9 +17,10 @@ class ZoomSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
     return Container(
       color: Theme.of(context).appBarTheme.backgroundColor,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.only(left: 8, right: 8, top: 4, bottom: 4 + bottomPadding),
       child: Row(
         children: [
           IconButton(

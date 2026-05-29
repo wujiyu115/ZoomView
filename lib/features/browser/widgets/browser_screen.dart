@@ -28,6 +28,8 @@ class BrowserScreen extends ConsumerStatefulWidget {
 
 class _BrowserScreenState extends ConsumerState<BrowserScreen> {
   final Map<String, InAppWebViewController> _controllers = {};
+  bool _isFullscreen = false;
+  Offset _fabOffset = const Offset(20, 200);
 
   InAppWebViewController? get _activeController {
     final state = ref.read(browserProvider);
@@ -45,93 +47,127 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
     final browserState = ref.watch(browserProvider);
     final settings = ref.watch(settingsProvider);
 
+    final webViewStack = IndexedStack(
+      index: browserState.activeTabIndex,
+      children: List.generate(browserState.tabs.length, (i) {
+        final tab = browserState.tabs[i];
+        return WebViewContainer(
+          key: ValueKey(tab.id),
+          tabIndex: i,
+          initialUrl: tab.url,
+          onControllerCreated: (controller) {
+            _controllers[tab.id] = controller;
+          },
+          onPageLoaded: (title, url) {
+            ref.read(historyProvider.notifier).addEntry(title, url);
+          },
+          onDownloadRequested: (request) {
+            final fileName = request.url.toString().split('/').last;
+            _showDownloadConfirmDialog(
+              request.url.toString(),
+              fileName.isEmpty ? 'download' : fileName,
+            );
+          },
+        );
+      }),
+    );
+
     return Scaffold(
       body: Column(
         children: [
-          BrowserToolbar(
-            isDownloading: ref.watch(isDownloadingProvider),
-            onHome: () => _activeController?.loadUrl(
-              urlRequest: URLRequest(url: WebUri(settings.homeUrl)),
-            ),
-            onBookmarks: () async {
-              final url = await Navigator.push<String>(
+          if (!_isFullscreen) ...[
+            BrowserToolbar(
+              isDownloading: ref.watch(isDownloadingProvider),
+              onHome: () => _activeController?.loadUrl(
+                urlRequest: URLRequest(url: WebUri(settings.homeUrl)),
+              ),
+              onBookmarks: () async {
+                final url = await Navigator.push<String>(
+                  context,
+                  MaterialPageRoute(builder: (_) => const BookmarkScreen()),
+                );
+                if (url != null) {
+                  _activeController?.loadUrl(
+                      urlRequest: URLRequest(url: WebUri(url)));
+                }
+              },
+              onRefresh: () => _activeController?.reload(),
+              onBack: () => _activeController?.goBack(),
+              onForward: () => _activeController?.goForward(),
+              onMore: () => _showMoreMenu(context),
+              onSettings: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const BookmarkScreen()),
-              );
-              if (url != null) {
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              ),
+              onTabs: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TabManager()),
+              ),
+              onDownloads: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DownloadScreen()),
+              ),
+            ),
+            UrlBar(
+              url: browserState.activeTab.url,
+              progress: browserState.progress,
+              isLoading: browserState.isLoading,
+              onSubmitted: (url) {
                 _activeController?.loadUrl(
-                    urlRequest: URLRequest(url: WebUri(url)));
-              }
-            },
-            onRefresh: () => _activeController?.reload(),
-            onBack: () => _activeController?.goBack(),
-            onForward: () => _activeController?.goForward(),
-            onMore: () => _showMoreMenu(context),
-            onSettings: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  urlRequest: URLRequest(url: WebUri(url)),
+                );
+              },
             ),
-            onTabs: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const TabManager()),
-            ),
-            onDownloads: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const DownloadScreen()),
-            ),
-          ),
-          UrlBar(
-            url: browserState.activeTab.url,
-            progress: browserState.progress,
-            isLoading: browserState.isLoading,
-            onSubmitted: (url) {
-              _activeController?.loadUrl(
-                urlRequest: URLRequest(url: WebUri(url)),
-              );
-            },
-          ),
+          ],
           Expanded(
-            child: IndexedStack(
-              index: browserState.activeTabIndex,
-              children: List.generate(browserState.tabs.length, (i) {
-                final tab = browserState.tabs[i];
-                return WebViewContainer(
-                  key: ValueKey(tab.id),
-                  tabIndex: i,
-                  initialUrl: tab.url,
-                  onControllerCreated: (controller) {
-                    _controllers[tab.id] = controller;
-                  },
-                  onPageLoaded: (title, url) {
-                    ref.read(historyProvider.notifier).addEntry(title, url);
-                  },
-                  onDownloadRequested: (request) {
-                    final fileName = request.url.toString().split('/').last;
-                    _showDownloadConfirmDialog(
-                      request.url.toString(),
-                      fileName.isEmpty ? 'download' : fileName,
-                    );
-                  },
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Stack(
+                  children: [
+                    webViewStack,
+                    Positioned(
+                      left: _fabOffset.dx,
+                      top: _fabOffset.dy,
+                      child: GestureDetector(
+                        onPanUpdate: (details) {
+                          setState(() {
+                            _fabOffset = Offset(
+                              (_fabOffset.dx + details.delta.dx).clamp(0, constraints.maxWidth - 40),
+                              (_fabOffset.dy + details.delta.dy).clamp(0, constraints.maxHeight - 40),
+                            );
+                          });
+                        },
+                        child: Opacity(
+                          opacity: 0.6,
+                          child: FloatingActionButton.small(
+                            onPressed: () => setState(() => _isFullscreen = !_isFullscreen),
+                            child: Icon(_isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 );
-              }),
+              },
             ),
           ),
-          ZoomSlider(
-            zoomLevel: browserState.activeTab.zoomLevel,
-            minZoom: settings.minZoom,
-            maxZoom: settings.maxZoom,
-            onChanged: (zoom) {
-              final oldZoom = browserState.activeTab.zoomLevel;
-              ref.read(browserProvider.notifier).updateZoom(
-                    browserState.activeTabIndex, zoom);
-              if (oldZoom > 0) {
-                _activeController?.zoomBy(
-                  zoomFactor: zoom / oldZoom,
-                  animated: false,
-                );
-              }
-            },
-          ),
+          if (!_isFullscreen)
+            ZoomSlider(
+              zoomLevel: browserState.activeTab.zoomLevel,
+              minZoom: settings.minZoom,
+              maxZoom: settings.maxZoom,
+              onChanged: (zoom) {
+                final oldZoom = browserState.activeTab.zoomLevel;
+                ref.read(browserProvider.notifier).updateZoom(
+                      browserState.activeTabIndex, zoom);
+                if (oldZoom > 0) {
+                  _activeController?.zoomBy(
+                    zoomFactor: zoom / oldZoom,
+                    animated: false,
+                  );
+                }
+              },
+            ),
         ],
       ),
     );
