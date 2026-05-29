@@ -57,16 +57,19 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
           var scheme = '$scheme';
           var orig = window.matchMedia;
           window.matchMedia = function(q) {
+            var result = orig.call(window, q);
             if (q.indexOf('prefers-color-scheme') !== -1) {
-              var m = orig.call(window, q);
               var forced = q.indexOf(scheme) !== -1;
-              return Object.defineProperty(
-                Object.create(m),
-                'matches',
-                { get: function() { return forced; } }
-              );
+              return new Proxy(result, {
+                get: function(target, prop) {
+                  if (prop === 'matches') return forced;
+                  var val = target[prop];
+                  if (typeof val === 'function') return val.bind(target);
+                  return val;
+                }
+              });
             }
-            return orig.call(window, q);
+            return result;
           };
           document.documentElement.style.colorScheme = scheme;
         })();
@@ -90,19 +93,21 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
       source: '''
         (function() {
           var scheme = '${isDark ? 'dark' : 'light'}';
-          var anti  = '${isDark ? 'light' : 'dark'}';
           var orig = window.matchMedia;
           window.matchMedia = function(q) {
+            var result = orig.call(window, q);
             if (q.indexOf('prefers-color-scheme') !== -1) {
-              var m = orig.call(window, q);
               var forced = q.indexOf(scheme) !== -1;
-              return Object.defineProperty(
-                Object.create(m),
-                'matches',
-                { get: function() { return forced; } }
-              );
+              return new Proxy(result, {
+                get: function(target, prop) {
+                  if (prop === 'matches') return forced;
+                  var val = target[prop];
+                  if (typeof val === 'function') return val.bind(target);
+                  return val;
+                }
+              });
             }
-            return orig.call(window, q);
+            return result;
           };
           document.documentElement.style.colorScheme = scheme;
         })();
@@ -124,6 +129,8 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
         javaScriptCanOpenWindowsAutomatically: true,
         domStorageEnabled: true,
         databaseEnabled: true,
+        useShouldOverrideUrlLoading: true,
+        allowsBackForwardNavigationGestures: true,
         preferredContentMode: settings.uaMode == UaMode.desktop
             ? UserPreferredContentMode.DESKTOP
             : UserPreferredContentMode.MOBILE,
@@ -132,13 +139,27 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
             ForceDarkStrategy.PREFER_WEB_THEME_OVER_USER_AGENT_DARKENING,
         algorithmicDarkeningAllowed: settings.darkMode,
       ),
+      shouldOverrideUrlLoading: (controller, navigationAction) async {
+        return NavigationActionPolicy.ALLOW;
+      },
+      onReceivedError: (controller, request, error) {
+        debugPrint('[WebView] error: isMainFrame=${request.isForMainFrame} type=${error.type} desc=${error.description} url=${request.url}');
+      },
+      onConsoleMessage: (controller, consoleMessage) {
+        debugPrint('[WebView][JS ${consoleMessage.messageLevel}] ${consoleMessage.message}');
+      },
       onWebViewCreated: (controller) async {
         _controller = controller;
         controller.evaluateJavascript(source: '''
-          Object.defineProperty(navigator, 'webdriver', {get: () => false});
-          if (!window.chrome) { window.chrome = { runtime: {} }; }
-          Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
-          Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en', 'zh-CN']});
+          try {
+            Object.defineProperty(navigator, 'webdriver', {get: () => false});
+          } catch(e) {}
+          try {
+            if (!window.chrome) { window.chrome = { runtime: {} }; }
+            Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+            Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en', 'zh-CN']});
+          } catch(e) {}
+          void(0);
         ''');
         widget.onControllerCreated(controller);
         final s = await controller.getSettings();
@@ -146,10 +167,15 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
       },
       onLoadStart: (controller, url) {
         controller.evaluateJavascript(source: '''
-          Object.defineProperty(navigator, 'webdriver', {get: () => false});
-          if (!window.chrome) { window.chrome = { runtime: {} }; }
-          Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
-          Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en', 'zh-CN']});
+          try {
+            Object.defineProperty(navigator, 'webdriver', {get: () => false});
+          } catch(e) {}
+          try {
+            if (!window.chrome) { window.chrome = { runtime: {} }; }
+            Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+            Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en', 'zh-CN']});
+          } catch(e) {}
+          void(0);
         ''');
         ref.read(browserProvider.notifier).setLoading(true);
         if (url != null) {
