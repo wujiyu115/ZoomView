@@ -120,12 +120,15 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
             minZoom: settings.minZoom,
             maxZoom: settings.maxZoom,
             onChanged: (zoom) {
+              final oldZoom = browserState.activeTab.zoomLevel;
               ref.read(browserProvider.notifier).updateZoom(
                     browserState.activeTabIndex, zoom);
-              _activeController?.zoomBy(
-                zoomFactor: zoom,
-                animated: false,
-              );
+              if (oldZoom > 0) {
+                _activeController?.zoomBy(
+                  zoomFactor: zoom / oldZoom,
+                  animated: false,
+                );
+              }
             },
           ),
         ],

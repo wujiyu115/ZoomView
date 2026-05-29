@@ -9,7 +9,7 @@ class AppConstants {
       'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 '
       '(KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36';
 
-  static const double minZoom = 1.0;
+  static const double minZoom = 0.5;
   static const double maxZoom = 3.0;
   static const double defaultZoom = 1.0;
   static const double zoomStep = 0.1;

@@ -16,7 +16,7 @@ class SettingsModel {
     this.homeUrl = 'https://www.google.com',
     this.viewportWidth = 1920,
     this.defaultZoom = 1.0,
-    this.minZoom = 1.0,
+    this.minZoom = 0.5,
     this.maxZoom = 3.0,
     this.darkMode = true,
   });

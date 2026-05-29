@@ -33,17 +33,17 @@ class BrowserToolbar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _ToolbarButton(icon: Icons.home_outlined, onTap: onHome),
-            _ToolbarButton(icon: Icons.bookmark_outline, onTap: onBookmarks),
-            _ToolbarButton(icon: Icons.refresh, onTap: onRefresh),
-            _ToolbarButton(
-                icon: Icons.arrow_back_ios_new, onTap: onBack, size: 20),
-            _ToolbarButton(
-                icon: Icons.arrow_forward_ios, onTap: onForward, size: 20),
-            _ToolbarButton(icon: Icons.more_horiz, onTap: onMore),
-            _ToolbarButton(icon: Icons.settings_outlined, onTap: onSettings),
-            _ToolbarButton(icon: Icons.grid_view_rounded, onTap: onTabs),
-            _ToolbarButton(icon: Icons.download_outlined, onTap: onDownloads),
+            Flexible(child: _ToolbarButton(icon: Icons.home_outlined, onTap: onHome)),
+            Flexible(child: _ToolbarButton(icon: Icons.bookmark_outline, onTap: onBookmarks)),
+            Flexible(child: _ToolbarButton(icon: Icons.refresh, onTap: onRefresh)),
+            Flexible(child: _ToolbarButton(
+                icon: Icons.arrow_back_ios_new, onTap: onBack, size: 20)),
+            Flexible(child: _ToolbarButton(
+                icon: Icons.arrow_forward_ios, onTap: onForward, size: 20)),
+            Flexible(child: _ToolbarButton(icon: Icons.more_horiz, onTap: onMore)),
+            Flexible(child: _ToolbarButton(icon: Icons.settings_outlined, onTap: onSettings)),
+            Flexible(child: _ToolbarButton(icon: Icons.grid_view_rounded, onTap: onTabs)),
+            Flexible(child: _ToolbarButton(icon: Icons.download_outlined, onTap: onDownloads)),
           ],
         ),
       ),
@@ -67,8 +67,8 @@ class _ToolbarButton extends StatelessWidget {
     return IconButton(
       icon: Icon(icon, size: size),
       onPressed: onTap,
-      padding: const EdgeInsets.all(8),
-      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      padding: const EdgeInsets.all(4),
+      constraints: const BoxConstraints(minWidth: 32, minHeight: 36),
     );
   }
 }
