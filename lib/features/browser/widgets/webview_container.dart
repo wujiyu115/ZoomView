@@ -164,6 +164,18 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
       },
       onWebViewCreated: (controller) async {
         _controller = controller;
+        controller.addJavaScriptHandler(
+          handlerName: 'onDownloadLink',
+          callback: (args) {
+            if (args.isNotEmpty) {
+              final url = args[0].toString();
+              final fileName =
+                  args.length > 1 ? args[1].toString() : 'download';
+              widget.onDownloadUrlDetected?.call(url, fileName);
+            }
+            return null;
+          },
+        );
         controller.evaluateJavascript(source: '''
           try {
             Object.defineProperty(navigator, 'webdriver', {get: () => false});
@@ -246,6 +258,45 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
             }
           ''');
         }
+
+        await controller.evaluateJavascript(source: '''
+          (function() {
+            if (window.__dlInterceptorInstalled) return;
+            window.__dlInterceptorInstalled = true;
+            var exts = ['.zip','.gz','.tgz','.bz2','.xz','.rar','.7z','.apk','.ipa','.dmg','.exe','.msi','.pkg','.deb','.rpm','.iso','.img','.bin','.tar'];
+            function isDl(href) {
+              try {
+                var u = new URL(href, location.href);
+                var p = u.pathname.toLowerCase();
+                for (var i = 0; i < exts.length; i++) { if (p.endsWith(exts[i])) return true; }
+                var h = u.hostname;
+                if (h === 'github.com') {
+                  if (p.indexOf('/releases/download/') !== -1) return true;
+                  if (p.indexOf('/archive/') !== -1) return true;
+                  if (p.indexOf('/actions/') !== -1 && p.indexOf('/artifacts/') !== -1) return true;
+                  if (p.indexOf('/suites/') !== -1 && p.indexOf('/artifacts/') !== -1) return true;
+                }
+                if (h.endsWith('.githubusercontent.com') || h === 'codeload.github.com') return true;
+              } catch(e) {}
+              return false;
+            }
+            document.addEventListener('click', function(e) {
+              var link = e.target.closest('a[href]');
+              if (!link) return;
+              var href = link.getAttribute('href');
+              if (!href) return;
+              if (link.hasAttribute('download') || isDl(href)) {
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                  var u = new URL(href, location.href);
+                  var name = u.pathname.split('/').pop() || 'download';
+                  window.flutter_inappwebview.callHandler('onDownloadLink', u.href, name);
+                } catch(err) {}
+              }
+            }, true);
+          })();
+        ''');
 
         _baseScale = null;
         _lastObservedScale = 0;
