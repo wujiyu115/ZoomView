@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:isolate';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
@@ -28,11 +29,15 @@ final isDownloadingProvider = Provider<bool>((ref) {
 class DownloadNotifier extends Notifier<List<DownloadModel>> {
   final _taskToDbId = <String, int>{};
   ReceivePort? _port;
+  Timer? _pollTimer;
 
   @override
   List<DownloadModel> build() {
     _bindPort();
-    ref.onDispose(_unbindPort);
+    ref.onDispose(() {
+      _unbindPort();
+      _stopPolling();
+    });
     return [];
   }
 
@@ -50,6 +55,53 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
     IsolateNameServer.removePortNameMapping(_portName);
     _port?.close();
     _port = null;
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(seconds: 1), (_) => _pollProgress());
+  }
+
+  void _stopPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+  }
+
+  Future<void> _pollProgress() async {
+    if (!state.any((d) => d.status == DownloadStatus.downloading)) {
+      _stopPolling();
+      return;
+    }
+
+    final tasks = await FlutterDownloader.loadTasks() ?? [];
+    for (final task in tasks) {
+      final dbId = _taskToDbId[task.taskId];
+      if (dbId == null) continue;
+
+      final dlStatus = _mapStatus(task.status.index);
+      final progress = task.progress.clamp(0, 100);
+
+      final current = state.where((d) => d.id == dbId).firstOrNull;
+      if (current == null) continue;
+      if (current.downloadedBytes == progress && current.status == dlStatus) continue;
+
+      state = state.map((d) {
+        if (d.id == dbId) {
+          return d.copyWith(
+            totalBytes: 100,
+            downloadedBytes: progress,
+            status: dlStatus,
+          );
+        }
+        return d;
+      }).toList();
+
+      if (dlStatus == DownloadStatus.completed || dlStatus == DownloadStatus.failed) {
+        _repo.updateStatus(dbId, dlStatus);
+        _repo.updateProgress(dbId, progress);
+        _taskToDbId.remove(task.taskId);
+      }
+    }
   }
 
   void _onDownloadCallback(dynamic data) {
@@ -86,7 +138,6 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
   }
 
   DownloadStatus _mapStatus(int status) {
-    // flutter_downloader: 1=enqueued, 2=running, 3=complete, 4=failed, 5=canceled, 6=paused
     return switch (status) {
       2 => DownloadStatus.downloading,
       3 => DownloadStatus.completed,
@@ -103,14 +154,16 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
 
   Future<void> _syncRunningTasks() async {
     final tasks = await FlutterDownloader.loadTasks() ?? [];
-    debugPrint('[Download] sync: ${tasks.length} flutter_downloader tasks, ${_taskToDbId.length} mapped');
+    debugPrint('[Download] sync: ${tasks.length} tasks, ${_taskToDbId.length} mapped');
+    bool hasActive = false;
+
     for (final task in tasks) {
       debugPrint('[Download] task: ${task.taskId} status=${task.status} progress=${task.progress} url=${task.url}');
 
       if (_taskToDbId.containsKey(task.taskId)) {
-        final dlStatus = _mapStatus(task.status.index);
-        if (dlStatus == DownloadStatus.completed || dlStatus == DownloadStatus.failed) {
-          _onDownloadCallback([task.taskId, task.status.index, task.progress]);
+        _applyTaskUpdate(task);
+        if (task.status == DownloadTaskStatus.running || task.status == DownloadTaskStatus.enqueued) {
+          hasActive = true;
         }
         continue;
       }
@@ -123,11 +176,38 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
           !mappedDbIds.contains(d.id)).toList();
       if (match.isNotEmpty) {
         _taskToDbId[task.taskId] = match.first.id!;
-        final dlStatus = _mapStatus(task.status.index);
-        if (dlStatus != DownloadStatus.downloading) {
-          _onDownloadCallback([task.taskId, task.status.index, task.progress]);
+        _applyTaskUpdate(task);
+        if (task.status == DownloadTaskStatus.running || task.status == DownloadTaskStatus.enqueued) {
+          hasActive = true;
         }
       }
+    }
+
+    if (hasActive) _startPolling();
+  }
+
+  void _applyTaskUpdate(DownloadTask task) {
+    final dbId = _taskToDbId[task.taskId];
+    if (dbId == null) return;
+
+    final dlStatus = _mapStatus(task.status.index);
+    final progress = task.progress.clamp(0, 100);
+
+    state = state.map((d) {
+      if (d.id == dbId) {
+        return d.copyWith(
+          totalBytes: 100,
+          downloadedBytes: progress,
+          status: dlStatus,
+        );
+      }
+      return d;
+    }).toList();
+
+    if (dlStatus == DownloadStatus.completed || dlStatus == DownloadStatus.failed) {
+      _repo.updateStatus(dbId, dlStatus);
+      _repo.updateProgress(dbId, progress);
+      _taskToDbId.remove(task.taskId);
     }
   }
 
@@ -156,7 +236,7 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
       debugPrint('[Download] failed to get cookies: $e');
     }
 
-    debugPrint('[Download] enqueue: url=$url savePath=$savePath fileName=$fileName cookies=${headers.containsKey('Cookie') ? '${headers['Cookie']!.length} chars' : 'none'}');
+    debugPrint('[Download] enqueue: url=$url fileName=$fileName');
 
     final taskId = await FlutterDownloader.enqueue(
       url: url,
@@ -175,6 +255,7 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
 
     await _repo.updateStatus(id, DownloadStatus.downloading);
     await load();
+    _startPolling();
   }
 
   Future<void> deleteRecord(int id) async {
