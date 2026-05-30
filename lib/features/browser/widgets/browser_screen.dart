@@ -29,7 +29,7 @@ class BrowserScreen extends ConsumerStatefulWidget {
 class _BrowserScreenState extends ConsumerState<BrowserScreen> {
   final Map<String, InAppWebViewController> _controllers = {};
   bool _isFullscreen = false;
-  Offset _fabOffset = const Offset(20, 200);
+  Offset? _fabOffset;
 
   InAppWebViewController? get _activeController {
     final state = ref.read(browserProvider);
@@ -126,18 +126,19 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
+                _fabOffset ??= Offset(20, constraints.maxHeight - 60);
                 return Stack(
                   children: [
                     webViewStack,
                     Positioned(
-                      left: _fabOffset.dx,
-                      top: _fabOffset.dy,
+                      left: _fabOffset!.dx,
+                      top: _fabOffset!.dy,
                       child: GestureDetector(
                         onPanUpdate: (details) {
                           setState(() {
                             _fabOffset = Offset(
-                              (_fabOffset.dx + details.delta.dx).clamp(0, constraints.maxWidth - 40),
-                              (_fabOffset.dy + details.delta.dy).clamp(0, constraints.maxHeight - 40),
+                              (_fabOffset!.dx + details.delta.dx).clamp(0, constraints.maxWidth - 40),
+                              (_fabOffset!.dy + details.delta.dy).clamp(0, constraints.maxHeight - 40),
                             );
                           });
                         },
