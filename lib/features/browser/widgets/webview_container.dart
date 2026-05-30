@@ -32,6 +32,9 @@ class WebViewContainer extends ConsumerStatefulWidget {
 
 class _WebViewContainerState extends ConsumerState<WebViewContainer> {
   InAppWebViewController? _controller;
+  double? _baseScale;
+  bool _ignoreZoomChanges = false;
+  int _loadId = 0;
 
   @override
   void initState() {
@@ -187,6 +190,8 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
           } catch(e) {}
           void(0);
         ''');
+        _ignoreZoomChanges = true;
+        _loadId++;
         ref.read(browserProvider.notifier).setLoading(true);
         if (url != null) {
           ref
@@ -239,6 +244,35 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
               meta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=10.0, user-scalable=yes');
             }
           ''');
+        }
+
+        ref.read(browserProvider.notifier).updateZoom(widget.tabIndex, 1.0);
+        _baseScale = null;
+        final myLoadId = _loadId;
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted && _loadId == myLoadId) {
+            _ignoreZoomChanges = false;
+          }
+        });
+      },
+      onZoomScaleChanged: (controller, oldScale, newScale) {
+        if (newScale <= 0) return;
+        if (_ignoreZoomChanges) {
+          _baseScale = newScale;
+          return;
+        }
+        if (_baseScale == null || _baseScale! <= 0) {
+          _baseScale = oldScale > 0 ? oldScale : newScale;
+          return;
+        }
+        final logicalZoom = newScale / _baseScale!;
+        final clamped =
+            logicalZoom.clamp(AppConstants.minZoom, AppConstants.maxZoom);
+        final rounded = double.parse(clamped.toStringAsFixed(1));
+        final currentZoom =
+            ref.read(browserProvider).tabs[widget.tabIndex].zoomLevel;
+        if ((rounded - currentZoom).abs() >= 0.05) {
+          ref.read(browserProvider.notifier).updateZoom(widget.tabIndex, rounded);
         }
       },
       onProgressChanged: (controller, progress) {
