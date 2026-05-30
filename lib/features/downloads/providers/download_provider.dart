@@ -134,6 +134,54 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
       _repo.updateStatus(dbId, dlStatus);
       _repo.updateProgress(dbId, progress.clamp(0, 100));
       _taskToDbId.remove(taskId);
+
+      if (dlStatus == DownloadStatus.failed) {
+        _diagnoseFailed(taskId, dbId);
+      }
+    }
+  }
+
+  Future<void> _diagnoseFailed(String taskId, int dbId) async {
+    final log = AppLogger.instance;
+    try {
+      final record = state.where((d) => d.id == dbId).firstOrNull;
+      if (record == null) {
+        log.e('Download', 'DIAG: no DB record for dbId=$dbId');
+        return;
+      }
+
+      log.e('Download', 'DIAG: FAILED url=${record.url}');
+      log.e('Download', 'DIAG: fileName=${record.fileName} filePath=${record.filePath}');
+
+      // Check target file
+      final targetFile = File(record.filePath);
+      final targetExists = await targetFile.exists();
+      log.e('Download', 'DIAG: target exists=$targetExists${targetExists ? ' size=${await targetFile.length()}' : ''}');
+
+      // Check savedDir
+      final savedDir = Directory(record.filePath.substring(0, record.filePath.lastIndexOf('/')));
+      if (await savedDir.exists()) {
+        final files = await savedDir.list().toList();
+        final listing = files.map((f) {
+          final name = f.path.split('/').last;
+          if (f is File) return '$name (file)';
+          return '$name (dir)';
+        }).join(', ');
+        log.e('Download', 'DIAG: dir contents: $listing');
+      } else {
+        log.e('Download', 'DIAG: savedDir does not exist');
+      }
+
+      // Query flutter_downloader task details
+      final tasks = await FlutterDownloader.loadTasks() ?? [];
+      final match = tasks.where((t) => t.taskId == taskId).firstOrNull;
+      if (match != null) {
+        log.e('Download', 'DIAG: fd_task status=${match.status} progress=${match.progress} filename=${match.filename} savedDir=${match.savedDir} timeCreated=${match.timeCreated}');
+      } else {
+        log.e('Download', 'DIAG: fd_task not found (already removed?)');
+      }
+    } catch (e) {
+      log.e('Download', 'DIAG: exception during diagnosis: $e');
     }
   }
 
