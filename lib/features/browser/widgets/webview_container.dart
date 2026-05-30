@@ -284,6 +284,26 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
           ref.read(browserProvider.notifier).updateZoom(widget.tabIndex, rounded);
         }
       },
+      onNavigationResponse: (controller, navigationResponse) async {
+        if (!navigationResponse.isForMainFrame) {
+          return NavigationResponseAction.ALLOW;
+        }
+        final response = navigationResponse.response;
+        if (response == null) return NavigationResponseAction.ALLOW;
+
+        final mimeType = response.mimeType?.toLowerCase() ?? '';
+        final url = response.url;
+        if (!navigationResponse.canShowMIMEType ||
+            _isDownloadMimeType(mimeType) ||
+            (url != null && _isDownloadUrl(url))) {
+          final fileName = response.suggestedFilename ??
+              (url != null ? _extractFileName(url) : 'download');
+          widget.onDownloadUrlDetected?.call(
+              url?.toString() ?? '', fileName);
+          return NavigationResponseAction.CANCEL;
+        }
+        return NavigationResponseAction.ALLOW;
+      },
       onProgressChanged: (controller, progress) {
         ref.read(browserProvider.notifier).setProgress(progress / 100.0);
       },
@@ -305,15 +325,39 @@ bool _isDownloadUrl(Uri uri) {
     if (path.endsWith(ext)) return true;
   }
   final host = uri.host;
-  if (host == 'github.com' &&
-      (path.contains('/releases/download/') || path.contains('/archive/'))) {
-    return true;
+  if (host == 'github.com') {
+    if (path.contains('/releases/download/')) return true;
+    if (path.contains('/archive/')) return true;
+    if (path.contains('/actions/') && path.contains('/artifacts/')) return true;
+    if (path.contains('/suites/') && path.contains('/artifacts/')) return true;
   }
-  if (host == 'objects.githubusercontent.com' ||
+  if (host.endsWith('.githubusercontent.com') ||
       host == 'codeload.github.com') {
     return true;
   }
   return false;
+}
+
+bool _isDownloadMimeType(String mimeType) {
+  if (mimeType.isEmpty) return false;
+  const types = [
+    'application/octet-stream',
+    'application/zip',
+    'application/x-zip-compressed',
+    'application/gzip',
+    'application/x-gzip',
+    'application/x-tar',
+    'application/x-7z-compressed',
+    'application/x-rar-compressed',
+    'application/x-apple-diskimage',
+    'application/vnd.android.package-archive',
+    'application/x-msdownload',
+    'application/x-msi',
+    'application/x-debian-package',
+    'application/x-rpm',
+    'application/x-iso9660-image',
+  ];
+  return types.contains(mimeType);
 }
 
 String _extractFileName(Uri uri) {
