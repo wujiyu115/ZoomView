@@ -48,7 +48,7 @@ class ZoomSlider extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Slider(
-              value: zoomLevel,
+              value: zoomLevel.clamp(minZoom, maxZoom),
               min: minZoom,
               max: maxZoom,
               divisions: ((maxZoom - minZoom) / AppConstants.zoomStep).round(),
@@ -77,7 +77,7 @@ class ZoomSlider extends StatelessWidget {
           SizedBox(
             width: 48,
             child: Text(
-              '${(zoomLevel * 100).round()}%',
+              '${(zoomLevel.clamp(minZoom, maxZoom) * 100).round()}%',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
