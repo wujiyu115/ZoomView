@@ -96,35 +96,111 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
         : AppConstants.mobileUserAgent;
 
     final isDark = settings.darkMode;
-    final colorSchemeScript = UserScript(
+    final scheme = isDark ? 'dark' : 'light';
+
+    final stealthScript = UserScript(
       source: '''
-        (function() {
-          var scheme = '${isDark ? 'dark' : 'light'}';
-          var orig = window.matchMedia;
-          window.matchMedia = function(q) {
-            var result = orig.call(window, q);
-            if (q.indexOf('prefers-color-scheme') !== -1) {
-              var forced = q.indexOf(scheme) !== -1;
-              return new Proxy(result, {
-                get: function(target, prop) {
-                  if (prop === 'matches') return forced;
-                  var val = target[prop];
-                  if (typeof val === 'function') return val.bind(target);
-                  return val;
-                }
-              });
-            }
-            return result;
-          };
-          document.documentElement.style.colorScheme = scheme;
-        })();
+(function() {
+  // --- color scheme override ---
+  var scheme = '$scheme';
+  var orig = window.matchMedia;
+  window.matchMedia = function(q) {
+    var result = orig.call(window, q);
+    if (q.indexOf('prefers-color-scheme') !== -1) {
+      var forced = q.indexOf(scheme) !== -1;
+      return new Proxy(result, {
+        get: function(target, prop) {
+          if (prop === 'matches') return forced;
+          var val = target[prop];
+          if (typeof val === 'function') return val.bind(target);
+          return val;
+        }
+      });
+    }
+    return result;
+  };
+  document.documentElement.style.colorScheme = scheme;
+
+  // --- anti-detection ---
+  try { Object.defineProperty(navigator, 'webdriver', {get: () => false}); } catch(e) {}
+
+  // realistic plugins (matches Chrome on iOS)
+  var FakePlugin = function(n, d, f) { this.name = n; this.description = d; this.filename = f; this.length = 0; };
+  var fakePlugins = [
+    new FakePlugin('Chrome PDF Plugin', 'Portable Document Format', 'internal-pdf-viewer'),
+    new FakePlugin('Chrome PDF Viewer', '', 'mhjfbmdgcfjbbpaeojofohoefgiehjai'),
+    new FakePlugin('Native Client', '', 'internal-nacl-plugin'),
+  ];
+  fakePlugins.refresh = function() {};
+  fakePlugins.item = function(i) { return this[i] || null; };
+  fakePlugins.namedItem = function(n) { for (var i=0;i<this.length;i++) if(this[i].name===n) return this[i]; return null; };
+  try { Object.defineProperty(navigator, 'plugins', {get: () => fakePlugins}); } catch(e) {}
+
+  try { Object.defineProperty(navigator, 'languages', {get: () => ['zh-CN', 'zh', 'en-US', 'en']}); } catch(e) {}
+
+  // hide automation markers
+  try { delete navigator.__proto__.webdriver; } catch(e) {}
+  try { delete window.cdc_adoQpoasnfa76pfcZLmcfl_Array; } catch(e) {}
+  try { delete window.cdc_adoQpoasnfa76pfcZLmcfl_Promise; } catch(e) {}
+  try { delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol; } catch(e) {}
+
+  // chrome object
+  if (!window.chrome) window.chrome = {};
+  window.chrome.app = {isInstalled: false, InstallState: {DISABLED:'disabled',INSTALLED:'installed',NOT_INSTALLED:'not_installed'}, RunningState: {CANNOT_RUN:'cannot_run',READY_TO_RUN:'ready_to_run',RUNNING:'running'}};
+  window.chrome.runtime = {OnInstalledReason: {CHROME_UPDATE:'chrome_update',INSTALL:'install',SHARED_MODULE_UPDATE:'shared_module_update',UPDATE:'update'}, OnRestartRequiredReason: {APP_UPDATE:'app_update',OS_UPDATE:'os_update',PERIODIC:'periodic'}, PlatformArch: {ARM:'arm',MIPS:'mips',MIPS64:'mips64',X86_32:'x86-32',X86_64:'x86-64'}, PlatformNaclArch: {ARM:'arm',MIPS:'mips',MIPS64:'mips64',X86_32:'x86-32',X86_64:'x86-64'}, PlatformOs: {ANDROID:'android',CROS:'cros',LINUX:'linux',MAC:'mac',OPENBSD:'openbsd',WIN:'win'}, RequestUpdateCheckStatus: {NO_UPDATE:'no_update',THROTTLED:'throttled',UPDATE_AVAILABLE:'update_available'}};
+  window.chrome.csi = function() { return {startE: Date.now(), onloadT: Date.now(), pageT: 0, tran: 15}; };
+  window.chrome.loadTimes = function() { return {commitLoadTime: Date.now()/1000, connectionInfo: 'h2', finishDocumentLoadTime: 0, finishLoadTime: 0, firstPaintAfterLoadTime: 0, firstPaintTime: 0, navigationType: 'Other', npnNegotiatedProtocol: 'h2', requestTime: Date.now()/1000-0.3, startLoadTime: Date.now()/1000-0.3, wasAlternateProtocolAvailable: false, wasFetchedViaSpdy: true, wasNpnNegotiated: true}; };
+
+  // hardware fingerprint consistency
+  try { Object.defineProperty(navigator, 'hardwareConcurrency', {get: () => 8}); } catch(e) {}
+  try { Object.defineProperty(navigator, 'deviceMemory', {get: () => 8}); } catch(e) {}
+  try { Object.defineProperty(navigator, 'maxTouchPoints', {get: () => 5}); } catch(e) {}
+  try { Object.defineProperty(navigator, 'vendor', {get: () => 'Apple Computer, Inc.'}); } catch(e) {}
+  try { Object.defineProperty(navigator, 'platform', {get: () => 'iPhone'}); } catch(e) {}
+
+  // Permissions API
+  if (!navigator.permissions) {
+    navigator.permissions = {
+      query: function(desc) {
+        return Promise.resolve({state: desc.name === 'notifications' ? 'denied' : 'prompt', onchange: null});
+      }
+    };
+  }
+
+  // Notification API stub
+  if (!window.Notification) {
+    window.Notification = function() {};
+    window.Notification.permission = 'default';
+    window.Notification.requestPermission = function() { return Promise.resolve('default'); };
+  }
+
+  // hide InAppWebView markers
+  try { delete window.__InAppBrowser; } catch(e) {}
+  try { delete window.flutter_inappwebview; } catch(e) {}
+
+  // WebGL vendor/renderer consistency (Apple GPU)
+  var origGetParameter = WebGLRenderingContext.prototype.getParameter;
+  WebGLRenderingContext.prototype.getParameter = function(p) {
+    if (p === 37445) return 'Apple Inc.';
+    if (p === 37446) return 'Apple GPU';
+    return origGetParameter.call(this, p);
+  };
+  if (typeof WebGL2RenderingContext !== 'undefined') {
+    var origGetParameter2 = WebGL2RenderingContext.prototype.getParameter;
+    WebGL2RenderingContext.prototype.getParameter = function(p) {
+      if (p === 37445) return 'Apple Inc.';
+      if (p === 37446) return 'Apple GPU';
+      return origGetParameter2.call(this, p);
+    };
+  }
+})();
       ''',
       injectionTime: UserScriptInjectionTime.AT_DOCUMENT_START,
     );
 
     return InAppWebView(
       initialUrlRequest: URLRequest(url: WebUri(widget.initialUrl.isEmpty ? 'about:blank' : widget.initialUrl)),
-      initialUserScripts: UnmodifiableListView([colorSchemeScript]),
+      initialUserScripts: UnmodifiableListView([stealthScript]),
       initialSettings: InAppWebViewSettings(
         userAgent: ua,
         builtInZoomControls: false,
@@ -176,33 +252,11 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
             return null;
           },
         );
-        controller.evaluateJavascript(source: '''
-          try {
-            Object.defineProperty(navigator, 'webdriver', {get: () => false});
-          } catch(e) {}
-          try {
-            if (!window.chrome) { window.chrome = { runtime: {} }; }
-            Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
-            Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en', 'zh-CN']});
-          } catch(e) {}
-          void(0);
-        ''');
         widget.onControllerCreated(controller);
         final s = await controller.getSettings();
         debugPrint('[WebView] created: forceDark=${s?.forceDark}, algorithmicDarkening=${s?.algorithmicDarkeningAllowed}, darkMode=${settings.darkMode}');
       },
       onLoadStart: (controller, url) {
-        controller.evaluateJavascript(source: '''
-          try {
-            Object.defineProperty(navigator, 'webdriver', {get: () => false});
-          } catch(e) {}
-          try {
-            if (!window.chrome) { window.chrome = { runtime: {} }; }
-            Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
-            Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en', 'zh-CN']});
-          } catch(e) {}
-          void(0);
-        ''');
         _ignoreZoomChanges = true;
         _loadId++;
         ref.read(browserProvider.notifier).setLoading(true);

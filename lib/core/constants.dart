@@ -2,12 +2,12 @@ class AppConstants {
   AppConstants._();
 
   static const String desktopUserAgent =
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-      '(KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36';
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 '
+      '(KHTML, like Gecko) Version/18.4 Safari/605.1.15';
 
   static const String mobileUserAgent =
-      'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 '
-      '(KHTML, like Gecko) Chrome/136.0.0.0 Mobile Safari/537.36';
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 18_4 like Mac OS X) AppleWebKit/605.1.15 '
+      '(KHTML, like Gecko) CriOS/136.0.7103.56 Mobile/15E148 Safari/604.1';
 
   static const double minZoom = 0.5;
   static const double maxZoom = 3.0;
