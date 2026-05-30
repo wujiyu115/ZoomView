@@ -218,6 +218,21 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
     final savePath = '${dir!.path}/downloads';
     await Directory(savePath).create(recursive: true);
 
+    // Ensure file name has an extension; GitHub artifacts are zips
+    if (!fileName.contains('.')) {
+      final uri = Uri.tryParse(url);
+      if (uri != null && uri.host == 'github.com') {
+        fileName = '$fileName.zip';
+      }
+    }
+
+    // Delete existing file to prevent move-failure on iOS
+    final targetFile = File('$savePath/$fileName');
+    if (await targetFile.exists()) {
+      await targetFile.delete();
+      AppLogger.instance.i('Download', 'deleted existing file: $savePath/$fileName');
+    }
+
     final id = await _repo.addDownload(
       url: url,
       fileName: fileName,
@@ -236,7 +251,7 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
       AppLogger.instance.e('Download', 'failed to get cookies: $e');
     }
 
-    AppLogger.instance.i('Download', 'enqueue: url=$url fileName=$fileName');
+    AppLogger.instance.i('Download', 'enqueue: url=$url fileName=$fileName savePath=$savePath');
 
     final taskId = await FlutterDownloader.enqueue(
       url: url,
