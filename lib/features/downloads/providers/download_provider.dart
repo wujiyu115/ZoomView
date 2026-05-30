@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:zoomview/core/database/database_helper.dart';
@@ -143,12 +144,25 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
       filePath: '$savePath/$fileName',
     );
 
-    debugPrint('[Download] enqueue: url=$url savePath=$savePath fileName=$fileName');
+    final headers = <String, String>{};
+    try {
+      final cookies = await CookieManager.instance()
+          .getCookies(url: WebUri(url));
+      if (cookies.isNotEmpty) {
+        headers['Cookie'] =
+            cookies.map((c) => '${c.name}=${c.value}').join('; ');
+      }
+    } catch (e) {
+      debugPrint('[Download] failed to get cookies: $e');
+    }
+
+    debugPrint('[Download] enqueue: url=$url savePath=$savePath fileName=$fileName cookies=${headers.containsKey('Cookie') ? '${headers['Cookie']!.length} chars' : 'none'}');
 
     final taskId = await FlutterDownloader.enqueue(
       url: url,
       savedDir: savePath,
       fileName: fileName,
+      headers: headers,
       showNotification: true,
       openFileFromNotification: true,
     );
