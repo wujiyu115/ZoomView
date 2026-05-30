@@ -12,6 +12,7 @@ import '../models/download_model.dart';
 import '../repositories/download_repository.dart';
 
 const _portName = 'downloader_send_port';
+const _log = 'Download';
 
 final downloadRepositoryProvider = Provider<DownloadRepository>((ref) {
   return DownloadRepository(DatabaseHelper.instance);
@@ -33,15 +34,17 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
 
   @override
   List<DownloadModel> build() {
-    _bindPort();
+    if (Platform.isAndroid) _bindPort();
     ref.onDispose(() {
-      _unbindPort();
+      if (Platform.isAndroid) _unbindPort();
       _stopPolling();
     });
     return [];
   }
 
   DownloadRepository get _repo => ref.read(downloadRepositoryProvider);
+
+  // --- Android: FlutterDownloader port/poll ---
 
   void _bindPort() {
     _unbindPort();
@@ -72,35 +75,16 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
       _stopPolling();
       return;
     }
-
     final tasks = await FlutterDownloader.loadTasks() ?? [];
     for (final task in tasks) {
       final dbId = _taskToDbId[task.taskId];
       if (dbId == null) continue;
-
       final dlStatus = _mapStatus(task.status.index);
       final progress = task.progress.clamp(0, 100);
-
       final current = state.where((d) => d.id == dbId).firstOrNull;
       if (current == null) continue;
       if (current.downloadedBytes == progress && current.status == dlStatus) continue;
-
-      state = state.map((d) {
-        if (d.id == dbId) {
-          return d.copyWith(
-            totalBytes: 100,
-            downloadedBytes: progress,
-            status: dlStatus,
-          );
-        }
-        return d;
-      }).toList();
-
-      if (dlStatus == DownloadStatus.completed || dlStatus == DownloadStatus.failed) {
-        _repo.updateStatus(dbId, dlStatus);
-        _repo.updateProgress(dbId, progress);
-        _taskToDbId.remove(task.taskId);
-      }
+      _updateState(dbId, dlStatus, progress);
     }
   }
 
@@ -108,80 +92,13 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
     final taskId = data[0] as String;
     final statusInt = data[1] as int;
     final progress = data[2] as int;
-
-    AppLogger.instance.d('Download', 'callback: taskId=$taskId status=$statusInt progress=$progress');
-
+    AppLogger.instance.d(_log, 'callback: taskId=$taskId status=$statusInt progress=$progress');
     final dbId = _taskToDbId[taskId];
-    if (dbId == null) {
-      AppLogger.instance.w('Download', 'no DB mapping for taskId=$taskId');
-      return;
-    }
-
+    if (dbId == null) return;
     final dlStatus = _mapStatus(statusInt);
-
-    state = state.map((d) {
-      if (d.id == dbId) {
-        return d.copyWith(
-          totalBytes: 100,
-          downloadedBytes: progress.clamp(0, 100),
-          status: dlStatus,
-        );
-      }
-      return d;
-    }).toList();
-
+    _updateState(dbId, dlStatus, progress.clamp(0, 100));
     if (dlStatus == DownloadStatus.completed || dlStatus == DownloadStatus.failed) {
-      _repo.updateStatus(dbId, dlStatus);
-      _repo.updateProgress(dbId, progress.clamp(0, 100));
       _taskToDbId.remove(taskId);
-
-      if (dlStatus == DownloadStatus.failed) {
-        _diagnoseFailed(taskId, dbId);
-      }
-    }
-  }
-
-  Future<void> _diagnoseFailed(String taskId, int dbId) async {
-    final log = AppLogger.instance;
-    try {
-      final record = state.where((d) => d.id == dbId).firstOrNull;
-      if (record == null) {
-        log.e('Download', 'DIAG: no DB record for dbId=$dbId');
-        return;
-      }
-
-      log.e('Download', 'DIAG: FAILED url=${record.url}');
-      log.e('Download', 'DIAG: fileName=${record.fileName} filePath=${record.filePath}');
-
-      // Check target file
-      final targetFile = File(record.filePath);
-      final targetExists = await targetFile.exists();
-      log.e('Download', 'DIAG: target exists=$targetExists${targetExists ? ' size=${await targetFile.length()}' : ''}');
-
-      // Check savedDir
-      final savedDir = Directory(record.filePath.substring(0, record.filePath.lastIndexOf('/')));
-      if (await savedDir.exists()) {
-        final files = await savedDir.list().toList();
-        final listing = files.map((f) {
-          final name = f.path.split('/').last;
-          if (f is File) return '$name (file)';
-          return '$name (dir)';
-        }).join(', ');
-        log.e('Download', 'DIAG: dir contents: $listing');
-      } else {
-        log.e('Download', 'DIAG: savedDir does not exist');
-      }
-
-      // Query flutter_downloader task details
-      final tasks = await FlutterDownloader.loadTasks() ?? [];
-      final match = tasks.where((t) => t.taskId == taskId).firstOrNull;
-      if (match != null) {
-        log.e('Download', 'DIAG: fd_task status=${match.status} progress=${match.progress} filename=${match.filename} savedDir=${match.savedDir} timeCreated=${match.timeCreated}');
-      } else {
-        log.e('Download', 'DIAG: fd_task not found (already removed?)');
-      }
-    } catch (e) {
-      log.e('Download', 'DIAG: exception during diagnosis: $e');
     }
   }
 
@@ -195,52 +112,9 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
     };
   }
 
-  Future<void> load() async {
-    state = await _repo.getAll();
-    await _syncRunningTasks();
-  }
+  // --- Shared state update ---
 
-  Future<void> _syncRunningTasks() async {
-    final tasks = await FlutterDownloader.loadTasks() ?? [];
-    AppLogger.instance.i('Download', 'sync: ${tasks.length} tasks, ${_taskToDbId.length} mapped');
-    bool hasActive = false;
-
-    for (final task in tasks) {
-      AppLogger.instance.d('Download', 'task: ${task.taskId} status=${task.status} progress=${task.progress} url=${task.url}');
-
-      if (_taskToDbId.containsKey(task.taskId)) {
-        _applyTaskUpdate(task);
-        if (task.status == DownloadTaskStatus.running || task.status == DownloadTaskStatus.enqueued) {
-          hasActive = true;
-        }
-        continue;
-      }
-
-      final mappedDbIds = _taskToDbId.values.toSet();
-      final match = state.where((d) =>
-          d.url == task.url &&
-          d.status == DownloadStatus.downloading &&
-          d.id != null &&
-          !mappedDbIds.contains(d.id)).toList();
-      if (match.isNotEmpty) {
-        _taskToDbId[task.taskId] = match.first.id!;
-        _applyTaskUpdate(task);
-        if (task.status == DownloadTaskStatus.running || task.status == DownloadTaskStatus.enqueued) {
-          hasActive = true;
-        }
-      }
-    }
-
-    if (hasActive) _startPolling();
-  }
-
-  void _applyTaskUpdate(DownloadTask task) {
-    final dbId = _taskToDbId[task.taskId];
-    if (dbId == null) return;
-
-    final dlStatus = _mapStatus(task.status.index);
-    final progress = task.progress.clamp(0, 100);
-
+  void _updateState(int dbId, DownloadStatus dlStatus, int progress) {
     state = state.map((d) {
       if (d.id == dbId) {
         return d.copyWith(
@@ -255,9 +129,58 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
     if (dlStatus == DownloadStatus.completed || dlStatus == DownloadStatus.failed) {
       _repo.updateStatus(dbId, dlStatus);
       _repo.updateProgress(dbId, progress);
+    }
+  }
+
+  // --- Load & sync ---
+
+  Future<void> load() async {
+    state = await _repo.getAll();
+    if (Platform.isAndroid) await _syncRunningTasks();
+  }
+
+  Future<void> _syncRunningTasks() async {
+    final tasks = await FlutterDownloader.loadTasks() ?? [];
+    AppLogger.instance.i(_log, 'sync: ${tasks.length} tasks, ${_taskToDbId.length} mapped');
+    bool hasActive = false;
+    for (final task in tasks) {
+      AppLogger.instance.d(_log, 'task: ${task.taskId} status=${task.status} progress=${task.progress} url=${task.url}');
+      if (_taskToDbId.containsKey(task.taskId)) {
+        _applyTaskUpdate(task);
+        if (task.status == DownloadTaskStatus.running || task.status == DownloadTaskStatus.enqueued) {
+          hasActive = true;
+        }
+        continue;
+      }
+      final mappedDbIds = _taskToDbId.values.toSet();
+      final match = state.where((d) =>
+          d.url == task.url &&
+          d.status == DownloadStatus.downloading &&
+          d.id != null &&
+          !mappedDbIds.contains(d.id)).toList();
+      if (match.isNotEmpty) {
+        _taskToDbId[task.taskId] = match.first.id!;
+        _applyTaskUpdate(task);
+        if (task.status == DownloadTaskStatus.running || task.status == DownloadTaskStatus.enqueued) {
+          hasActive = true;
+        }
+      }
+    }
+    if (hasActive) _startPolling();
+  }
+
+  void _applyTaskUpdate(DownloadTask task) {
+    final dbId = _taskToDbId[task.taskId];
+    if (dbId == null) return;
+    final dlStatus = _mapStatus(task.status.index);
+    final progress = task.progress.clamp(0, 100);
+    _updateState(dbId, dlStatus, progress);
+    if (dlStatus == DownloadStatus.completed || dlStatus == DownloadStatus.failed) {
       _taskToDbId.remove(task.taskId);
     }
   }
+
+  // --- Download entry point ---
 
   Future<void> startDownload(String url, String fileName) async {
     final dir = Platform.isAndroid
@@ -266,7 +189,6 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
     final savePath = '${dir!.path}/downloads';
     await Directory(savePath).create(recursive: true);
 
-    // Ensure file name has an extension; GitHub artifacts are zips
     if (!fileName.contains('.')) {
       final uri = Uri.tryParse(url);
       if (uri != null && uri.host == 'github.com') {
@@ -274,14 +196,101 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
       }
     }
 
-    // Delete existing file to prevent move-failure on iOS
     final targetFile = File('$savePath/$fileName');
     if (await targetFile.exists()) {
       await targetFile.delete();
-      AppLogger.instance.i('Download', 'deleted existing file: $savePath/$fileName');
+      AppLogger.instance.i(_log, 'deleted existing file: $savePath/$fileName');
     }
 
-    // Clean old flutter_downloader tasks for this URL to avoid conflicts
+    final id = await _repo.addDownload(
+      url: url,
+      fileName: fileName,
+      filePath: '$savePath/$fileName',
+    );
+
+    await _repo.updateStatus(id, DownloadStatus.downloading);
+
+    if (Platform.isIOS) {
+      await _downloadWithDart(id, url, '$savePath/$fileName');
+    } else {
+      await _downloadWithFlutterDownloader(id, url, savePath, fileName);
+    }
+    await load();
+  }
+
+  // --- iOS: Dart HttpClient download ---
+
+  Future<void> _downloadWithDart(int dbId, String url, String filePath) async {
+    AppLogger.instance.i(_log, 'dart download: url=$url filePath=$filePath');
+
+    String cookieHeader = '';
+    try {
+      final cookies = await CookieManager.instance().getCookies(url: WebUri(url));
+      if (cookies.isNotEmpty) {
+        cookieHeader = cookies.map((c) => '${c.name}=${c.value}').join('; ');
+      }
+    } catch (e) {
+      AppLogger.instance.e(_log, 'failed to get cookies: $e');
+    }
+
+    _updateState(dbId, DownloadStatus.downloading, 0);
+
+    try {
+      final client = HttpClient();
+      client.userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_4 like Mac OS X) '
+          'AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/136.0.7103.56 Mobile/15E148 Safari/604.1';
+
+      final request = await client.getUrl(Uri.parse(url));
+      if (cookieHeader.isNotEmpty) {
+        request.headers.set('Cookie', cookieHeader);
+      }
+
+      final response = await request.close();
+
+      if (response.statusCode >= 400) {
+        AppLogger.instance.e(_log, 'HTTP ${response.statusCode} for $url');
+        _updateState(dbId, DownloadStatus.failed, 0);
+        client.close();
+        return;
+      }
+
+      AppLogger.instance.i(_log, 'HTTP ${response.statusCode} contentLength=${response.contentLength}');
+
+      final file = File(filePath);
+      final sink = file.openWrite();
+      final totalBytes = response.contentLength;
+      int received = 0;
+      int lastReportedPercent = 0;
+
+      await for (final chunk in response) {
+        sink.add(chunk);
+        received += chunk.length;
+        if (totalBytes > 0) {
+          final percent = (received * 100 ~/ totalBytes).clamp(0, 100);
+          if (percent > lastReportedPercent) {
+            lastReportedPercent = percent;
+            _updateState(dbId, DownloadStatus.downloading, percent);
+          }
+        }
+      }
+
+      await sink.flush();
+      await sink.close();
+      client.close();
+
+      final fileSize = await file.length();
+      AppLogger.instance.i(_log, 'completed: received=$received fileSize=$fileSize path=$filePath');
+      _updateState(dbId, DownloadStatus.completed, 100);
+    } catch (e) {
+      AppLogger.instance.e(_log, 'dart download failed: $e');
+      _updateState(dbId, DownloadStatus.failed, 0);
+    }
+  }
+
+  // --- Android: FlutterDownloader ---
+
+  Future<void> _downloadWithFlutterDownloader(
+      int dbId, String url, String savePath, String fileName) async {
     try {
       final oldTasks = await FlutterDownloader.loadTasks() ?? [];
       for (final t in oldTasks) {
@@ -292,28 +301,20 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
         }
       }
     } catch (e) {
-      AppLogger.instance.w('Download', 'failed to clean old tasks: $e');
+      AppLogger.instance.w(_log, 'failed to clean old tasks: $e');
     }
-
-    final id = await _repo.addDownload(
-      url: url,
-      fileName: fileName,
-      filePath: '$savePath/$fileName',
-    );
 
     final headers = <String, String>{};
     try {
-      final cookies = await CookieManager.instance()
-          .getCookies(url: WebUri(url));
+      final cookies = await CookieManager.instance().getCookies(url: WebUri(url));
       if (cookies.isNotEmpty) {
-        headers['Cookie'] =
-            cookies.map((c) => '${c.name}=${c.value}').join('; ');
+        headers['Cookie'] = cookies.map((c) => '${c.name}=${c.value}').join('; ');
       }
     } catch (e) {
-      AppLogger.instance.e('Download', 'failed to get cookies: $e');
+      AppLogger.instance.e(_log, 'failed to get cookies: $e');
     }
 
-    AppLogger.instance.i('Download', 'enqueue: url=$url fileName=$fileName savePath=$savePath');
+    AppLogger.instance.i(_log, 'enqueue: url=$url fileName=$fileName savePath=$savePath');
 
     final taskId = await FlutterDownloader.enqueue(
       url: url,
@@ -324,14 +325,11 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
       openFileFromNotification: true,
     );
 
-    AppLogger.instance.i('Download', 'enqueued: taskId=$taskId dbId=$id');
+    AppLogger.instance.i(_log, 'enqueued: taskId=$taskId dbId=$dbId');
 
     if (taskId != null) {
-      _taskToDbId[taskId] = id;
+      _taskToDbId[taskId] = dbId;
     }
-
-    await _repo.updateStatus(id, DownloadStatus.downloading);
-    await load();
     _startPolling();
   }
 
