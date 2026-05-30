@@ -96,6 +96,8 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
                   CupertinoPageRoute(builder: (_) => const BookmarkScreen()),
                 );
                 if (url != null) {
+                  ref.read(browserProvider.notifier).hideStartPage(
+                      ref.read(browserProvider).activeTabIndex);
                   _activeController?.loadUrl(
                       urlRequest: URLRequest(url: WebUri(url)));
                 }
@@ -122,6 +124,8 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
               progress: browserState.progress,
               isLoading: browserState.isLoading,
               onSubmitted: (url) {
+                ref.read(browserProvider.notifier).hideStartPage(
+                    browserState.activeTabIndex);
                 _activeController?.loadUrl(
                   urlRequest: URLRequest(url: WebUri(url)),
                 );
@@ -334,6 +338,8 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
                     CupertinoPageRoute(builder: (_) => const HistoryScreen()),
                   );
                   if (url != null) {
+                    ref.read(browserProvider.notifier).hideStartPage(
+                        ref.read(browserProvider).activeTabIndex);
                     _activeController?.loadUrl(
                         urlRequest: URLRequest(url: WebUri(url)));
                   }

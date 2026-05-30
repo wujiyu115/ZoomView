@@ -233,6 +233,20 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
       AppLogger.instance.i('Download', 'deleted existing file: $savePath/$fileName');
     }
 
+    // Clean old flutter_downloader tasks for this URL to avoid conflicts
+    try {
+      final oldTasks = await FlutterDownloader.loadTasks() ?? [];
+      for (final t in oldTasks) {
+        if (t.url == url && (t.status == DownloadTaskStatus.failed ||
+            t.status == DownloadTaskStatus.canceled ||
+            t.status == DownloadTaskStatus.complete)) {
+          await FlutterDownloader.remove(taskId: t.taskId, shouldDeleteContent: true);
+        }
+      }
+    } catch (e) {
+      AppLogger.instance.w('Download', 'failed to clean old tasks: $e');
+    }
+
     final id = await _repo.addDownload(
       url: url,
       fileName: fileName,
