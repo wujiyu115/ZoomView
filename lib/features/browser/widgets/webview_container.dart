@@ -35,6 +35,7 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
   double? _baseScale;
   bool _ignoreZoomChanges = false;
   int _loadId = 0;
+  double _lastObservedScale = 0;
 
   @override
   void initState() {
@@ -246,10 +247,18 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
           ''');
         }
 
-        ref.read(browserProvider.notifier).updateZoom(widget.tabIndex, 1.0);
         _baseScale = null;
+        _lastObservedScale = 0;
         final myLoadId = _loadId;
-        Future.delayed(const Duration(milliseconds: 500), () {
+        Future.delayed(const Duration(milliseconds: 500), () async {
+          if (!mounted || _loadId != myLoadId) return;
+          _baseScale = _lastObservedScale > 0 ? _lastObservedScale : null;
+          final storedZoom =
+              ref.read(browserProvider).tabs[widget.tabIndex].zoomLevel;
+          if (storedZoom != 1.0 && _controller != null) {
+            await _controller!.zoomBy(
+                zoomFactor: storedZoom, animated: false);
+          }
           if (mounted && _loadId == myLoadId) {
             _ignoreZoomChanges = false;
           }
@@ -258,7 +267,7 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
       onZoomScaleChanged: (controller, oldScale, newScale) {
         if (newScale <= 0) return;
         if (_ignoreZoomChanges) {
-          _baseScale = newScale;
+          _lastObservedScale = newScale;
           return;
         }
         if (_baseScale == null || _baseScale! <= 0) {
