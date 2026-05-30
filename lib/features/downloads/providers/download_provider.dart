@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:isolate';
 import 'dart:ui';
-import 'package:flutter/foundation.dart';
+import 'package:zoomview/core/logger/app_logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -109,11 +109,11 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
     final statusInt = data[1] as int;
     final progress = data[2] as int;
 
-    debugPrint('[Download] callback: taskId=$taskId status=$statusInt progress=$progress');
+    AppLogger.instance.d('Download', 'callback: taskId=$taskId status=$statusInt progress=$progress');
 
     final dbId = _taskToDbId[taskId];
     if (dbId == null) {
-      debugPrint('[Download] no DB mapping for taskId=$taskId');
+      AppLogger.instance.w('Download', 'no DB mapping for taskId=$taskId');
       return;
     }
 
@@ -154,11 +154,11 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
 
   Future<void> _syncRunningTasks() async {
     final tasks = await FlutterDownloader.loadTasks() ?? [];
-    debugPrint('[Download] sync: ${tasks.length} tasks, ${_taskToDbId.length} mapped');
+    AppLogger.instance.i('Download', 'sync: ${tasks.length} tasks, ${_taskToDbId.length} mapped');
     bool hasActive = false;
 
     for (final task in tasks) {
-      debugPrint('[Download] task: ${task.taskId} status=${task.status} progress=${task.progress} url=${task.url}');
+      AppLogger.instance.d('Download', 'task: ${task.taskId} status=${task.status} progress=${task.progress} url=${task.url}');
 
       if (_taskToDbId.containsKey(task.taskId)) {
         _applyTaskUpdate(task);
@@ -233,10 +233,10 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
             cookies.map((c) => '${c.name}=${c.value}').join('; ');
       }
     } catch (e) {
-      debugPrint('[Download] failed to get cookies: $e');
+      AppLogger.instance.e('Download', 'failed to get cookies: $e');
     }
 
-    debugPrint('[Download] enqueue: url=$url fileName=$fileName');
+    AppLogger.instance.i('Download', 'enqueue: url=$url fileName=$fileName');
 
     final taskId = await FlutterDownloader.enqueue(
       url: url,
@@ -247,7 +247,7 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
       openFileFromNotification: true,
     );
 
-    debugPrint('[Download] enqueued: taskId=$taskId dbId=$id');
+    AppLogger.instance.i('Download', 'enqueued: taskId=$taskId dbId=$id');
 
     if (taskId != null) {
       _taskToDbId[taskId] = id;

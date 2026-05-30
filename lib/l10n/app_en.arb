@@ -90,5 +90,12 @@
   "recentVisits": "Recent Visits",
   "done": "Done",
   "edit": "Edit",
-  "earlierThisWeek": "Earlier This Week"
+  "earlierThisWeek": "Earlier This Week",
+  "developer": "Developer",
+  "devLog": "Developer Log",
+  "viewLogs": "View Logs",
+  "clearLogs": "Logs cleared",
+  "exportLogs": "Logs exported",
+  "noLogs": "No logs yet",
+  "logsCopied": "Logs copied"
 }

@@ -523,6 +523,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Earlier This Week'**
   String get earlierThisWeek;
+
+  /// No description provided for @developer.
+  ///
+  /// In en, this message translates to:
+  /// **'Developer'**
+  String get developer;
+
+  /// No description provided for @devLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Developer Log'**
+  String get devLog;
+
+  /// No description provided for @viewLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'View Logs'**
+  String get viewLogs;
+
+  /// No description provided for @clearLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Logs cleared'**
+  String get clearLogs;
+
+  /// No description provided for @exportLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Logs exported'**
+  String get exportLogs;
+
+  /// No description provided for @noLogs.
+  ///
+  /// In en, this message translates to:
+  /// **'No logs yet'**
+  String get noLogs;
+
+  /// No description provided for @logsCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Logs copied'**
+  String get logsCopied;
 }
 
 class _AppLocalizationsDelegate

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoomview/core/database/database_helper.dart';
+import 'package:zoomview/core/logger/app_logger.dart';
 import '../models/settings_model.dart';
 import '../repositories/settings_repository.dart';
 
@@ -20,6 +21,7 @@ class SettingsNotifier extends Notifier<SettingsModel> {
 
   Future<void> load() async {
     state = await _repo.loadAll();
+    AppLogger.instance.enabled = state.devLogEnabled;
   }
 
   Future<void> setUaMode(UaMode mode) async {
@@ -60,5 +62,11 @@ class SettingsNotifier extends Notifier<SettingsModel> {
   Future<void> setDarkMode(bool enabled) async {
     await _repo.set('dark_mode', enabled.toString());
     state = state.copyWith(darkMode: enabled);
+  }
+
+  Future<void> setDevLogEnabled(bool enabled) async {
+    await _repo.set('dev_log_enabled', enabled.toString());
+    AppLogger.instance.enabled = enabled;
+    state = state.copyWith(devLogEnabled: enabled);
   }
 }

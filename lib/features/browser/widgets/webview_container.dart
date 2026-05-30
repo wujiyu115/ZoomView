@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zoomview/core/constants.dart';
+import 'package:zoomview/core/logger/app_logger.dart';
 import 'package:zoomview/features/settings/models/settings_model.dart';
 import 'package:zoomview/features/settings/providers/settings_provider.dart';
 import 'package:zoomview/features/browser/providers/browser_provider.dart';
@@ -41,7 +42,7 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
   void initState() {
     super.initState();
     ref.listenManual(settingsProvider.select((s) => s.darkMode), (prev, next) {
-      debugPrint('[WebView] darkMode changed: $prev -> $next');
+      AppLogger.instance.d('WebView', 'darkMode changed: $prev -> $next');
       _applyDarkMode(next);
     });
   }
@@ -85,7 +86,7 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
     ));
 
     await controller.reload();
-    debugPrint('[WebView] applied darkMode=$darkMode, scheme=$scheme');
+    AppLogger.instance.i('WebView', 'applied darkMode=$darkMode, scheme=$scheme');
   }
 
   @override
@@ -233,10 +234,10 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
         return NavigationActionPolicy.ALLOW;
       },
       onReceivedError: (controller, request, error) {
-        debugPrint('[WebView] error: isMainFrame=${request.isForMainFrame} type=${error.type} desc=${error.description} url=${request.url}');
+        AppLogger.instance.e('WebView', 'error: isMainFrame=${request.isForMainFrame} type=${error.type} desc=${error.description} url=${request.url}');
       },
       onConsoleMessage: (controller, consoleMessage) {
-        debugPrint('[WebView][JS ${consoleMessage.messageLevel}] ${consoleMessage.message}');
+        AppLogger.instance.d('WebView', 'JS ${consoleMessage.messageLevel}: ${consoleMessage.message}');
       },
       onWebViewCreated: (controller) async {
         _controller = controller;
@@ -254,7 +255,7 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
         );
         widget.onControllerCreated(controller);
         final s = await controller.getSettings();
-        debugPrint('[WebView] created: forceDark=${s?.forceDark}, algorithmicDarkening=${s?.algorithmicDarkeningAllowed}, darkMode=${settings.darkMode}');
+        AppLogger.instance.i('WebView', 'created: forceDark=${s?.forceDark}, algorithmicDarkening=${s?.algorithmicDarkeningAllowed}, darkMode=${settings.darkMode}');
       },
       onLoadStart: (controller, url) {
         _ignoreZoomChanges = true;
@@ -287,7 +288,7 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
           }
           csMeta.setAttribute('content', '$colorScheme');
         ''');
-        debugPrint('[WebView] onLoadStop: injected colorScheme=$colorScheme');
+        AppLogger.instance.d('WebView', 'onLoadStop: injected colorScheme=$colorScheme');
 
         // Force desktop viewport and enable zoom
         final viewportSettings = ref.read(settingsProvider);

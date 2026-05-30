@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -10,6 +11,7 @@ import 'package:zoomview/core/widgets/section_header.dart';
 import 'package:zoomview/l10n/app_localizations.dart';
 import '../models/settings_model.dart';
 import '../providers/settings_provider.dart';
+import 'dev_log_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -120,6 +122,30 @@ class SettingsScreen extends ConsumerWidget {
                           value: settings.darkMode,
                           onChanged: (v) =>
                               ref.read(settingsProvider.notifier).setDarkMode(v),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SectionHeader(label: l.developer, useAccentColor: true),
+                  GroupedCard(
+                    children: [
+                      _SettingsRow(
+                        icon: Icons.bug_report_outlined,
+                        iconColor: const Color(0xFFE8590C),
+                        title: l.devLog,
+                        trailing: IosToggle(
+                          value: settings.devLogEnabled,
+                          onChanged: (v) =>
+                              ref.read(settingsProvider.notifier).setDevLogEnabled(v),
+                        ),
+                      ),
+                      _SettingsRow(
+                        icon: Icons.article_outlined,
+                        iconColor: const Color(0xFF0969DA),
+                        title: l.viewLogs,
+                        onTap: () => Navigator.push(
+                          context,
+                          CupertinoPageRoute(builder: (_) => const DevLogScreen()),
                         ),
                       ),
                     ],

@@ -229,4 +229,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get earlierThisWeek => 'Earlier This Week';
+
+  @override
+  String get developer => 'Developer';
+
+  @override
+  String get devLog => 'Developer Log';
+
+  @override
+  String get viewLogs => 'View Logs';
+
+  @override
+  String get clearLogs => 'Logs cleared';
+
+  @override
+  String get exportLogs => 'Logs exported';
+
+  @override
+  String get noLogs => 'No logs yet';
+
+  @override
+  String get logsCopied => 'Logs copied';
 }

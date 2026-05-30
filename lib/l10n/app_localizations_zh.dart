@@ -228,4 +228,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get earlierThisWeek => '本周早些时候';
+
+  @override
+  String get developer => '开发者';
+
+  @override
+  String get devLog => '开发日志';
+
+  @override
+  String get viewLogs => '查看日志';
+
+  @override
+  String get clearLogs => '日志已清除';
+
+  @override
+  String get exportLogs => '日志已导出';
+
+  @override
+  String get noLogs => '暂无日志';
+
+  @override
+  String get logsCopied => '日志已复制';
 }

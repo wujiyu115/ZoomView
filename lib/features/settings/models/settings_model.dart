@@ -9,6 +9,7 @@ class SettingsModel {
   final double minZoom;
   final double maxZoom;
   final bool darkMode;
+  final bool devLogEnabled;
 
   const SettingsModel({
     this.uaMode = UaMode.desktop,
@@ -19,6 +20,7 @@ class SettingsModel {
     this.minZoom = 0.5,
     this.maxZoom = 3.0,
     this.darkMode = true,
+    this.devLogEnabled = false,
   });
 
   SettingsModel copyWith({
@@ -30,6 +32,7 @@ class SettingsModel {
     double? minZoom,
     double? maxZoom,
     bool? darkMode,
+    bool? devLogEnabled,
   }) {
     return SettingsModel(
       uaMode: uaMode ?? this.uaMode,
@@ -40,6 +43,7 @@ class SettingsModel {
       minZoom: minZoom ?? this.minZoom,
       maxZoom: maxZoom ?? this.maxZoom,
       darkMode: darkMode ?? this.darkMode,
+      devLogEnabled: devLogEnabled ?? this.devLogEnabled,
     );
   }
 
@@ -53,6 +57,7 @@ class SettingsModel {
       minZoom: double.tryParse(map['min_zoom'] ?? '') ?? 1.0,
       maxZoom: double.tryParse(map['max_zoom'] ?? '') ?? 3.0,
       darkMode: map['dark_mode'] != 'false',
+      devLogEnabled: map['dev_log_enabled'] == 'true',
     );
   }
 }
