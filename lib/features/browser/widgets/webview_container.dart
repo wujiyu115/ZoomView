@@ -13,6 +13,8 @@ class WebViewContainer extends ConsumerStatefulWidget {
   final void Function(InAppWebViewController) onControllerCreated;
   final void Function(String title, String url)? onPageLoaded;
   final void Function(DownloadStartRequest request)? onDownloadRequested;
+  final void Function(String url, String suggestedFilename)?
+      onDownloadUrlDetected;
 
   const WebViewContainer({
     super.key,
@@ -21,6 +23,7 @@ class WebViewContainer extends ConsumerStatefulWidget {
     required this.onControllerCreated,
     this.onPageLoaded,
     this.onDownloadRequested,
+    this.onDownloadUrlDetected,
   });
 
   @override
@@ -130,6 +133,7 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
         domStorageEnabled: true,
         databaseEnabled: true,
         useShouldOverrideUrlLoading: true,
+        useOnDownloadStart: true,
         allowsBackForwardNavigationGestures: true,
         preferredContentMode: settings.uaMode == UaMode.desktop
             ? UserPreferredContentMode.DESKTOP
@@ -140,6 +144,12 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
         algorithmicDarkeningAllowed: settings.darkMode,
       ),
       shouldOverrideUrlLoading: (controller, navigationAction) async {
+        final uri = navigationAction.request.url;
+        if (uri != null && _isDownloadUrl(uri)) {
+          final fileName = _extractFileName(uri);
+          widget.onDownloadUrlDetected?.call(uri.toString(), fileName);
+          return NavigationActionPolicy.CANCEL;
+        }
         return NavigationActionPolicy.ALLOW;
       },
       onReceivedError: (controller, request, error) {
@@ -239,4 +249,32 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
       },
     );
   }
+}
+
+bool _isDownloadUrl(Uri uri) {
+  final path = uri.path.toLowerCase();
+  const exts = [
+    '.zip', '.gz', '.tgz', '.bz2', '.xz', '.rar', '.7z',
+    '.apk', '.ipa', '.dmg', '.exe', '.msi', '.pkg', '.deb', '.rpm',
+    '.iso', '.img', '.bin', '.tar',
+  ];
+  for (final ext in exts) {
+    if (path.endsWith(ext)) return true;
+  }
+  final host = uri.host;
+  if (host == 'github.com' &&
+      (path.contains('/releases/download/') || path.contains('/archive/'))) {
+    return true;
+  }
+  if (host == 'objects.githubusercontent.com' ||
+      host == 'codeload.github.com') {
+    return true;
+  }
+  return false;
+}
+
+String _extractFileName(Uri uri) {
+  final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+  if (segments.isEmpty) return 'download';
+  return segments.last;
 }

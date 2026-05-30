@@ -62,11 +62,15 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
             ref.read(historyProvider.notifier).addEntry(title, url);
           },
           onDownloadRequested: (request) {
-            final fileName = request.url.toString().split('/').last;
+            final fileName = request.suggestedFilename ??
+                request.url.toString().split('/').last.split('?').first;
             _showDownloadConfirmDialog(
               request.url.toString(),
               fileName.isEmpty ? 'download' : fileName,
             );
+          },
+          onDownloadUrlDetected: (url, fileName) {
+            _showDownloadConfirmDialog(url, fileName);
           },
         );
       }),
