@@ -1,7 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:zoomview/core/extensions.dart';
+import 'package:zoomview/core/widgets/colored_icon_box.dart';
 import 'package:zoomview/features/browser/providers/browser_provider.dart';
 import 'package:zoomview/features/settings/models/settings_model.dart';
 import 'package:zoomview/features/settings/providers/settings_provider.dart';
@@ -18,6 +21,7 @@ import 'url_bar.dart';
 import 'zoom_slider.dart';
 import 'tab_manager.dart';
 import 'webview_container.dart';
+import 'start_page.dart';
 
 class BrowserScreen extends ConsumerStatefulWidget {
   const BrowserScreen({super.key});
@@ -82,13 +86,14 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
           if (!_isFullscreen) ...[
             BrowserToolbar(
               isDownloading: ref.watch(isDownloadingProvider),
-              onHome: () => _activeController?.loadUrl(
-                urlRequest: URLRequest(url: WebUri(settings.homeUrl)),
-              ),
+              onHome: () {
+                final state = ref.read(browserProvider);
+                ref.read(browserProvider.notifier).showStartPageAt(state.activeTabIndex);
+              },
               onBookmarks: () async {
                 final url = await Navigator.push<String>(
                   context,
-                  MaterialPageRoute(builder: (_) => const BookmarkScreen()),
+                  CupertinoPageRoute(builder: (_) => const BookmarkScreen()),
                 );
                 if (url != null) {
                   _activeController?.loadUrl(
@@ -101,15 +106,15 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
               onMore: () => _showMoreMenu(context),
               onSettings: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                CupertinoPageRoute(builder: (_) => const SettingsScreen()),
               ),
               onTabs: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const TabManager()),
+                CupertinoPageRoute(builder: (_) => const TabManager()),
               ),
               onDownloads: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const DownloadScreen()),
+                CupertinoPageRoute(builder: (_) => const DownloadScreen()),
               ),
             ),
             UrlBar(
@@ -127,9 +132,21 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 _fabOffset ??= Offset(20, constraints.maxHeight - 60);
+                final showStart = browserState.activeTab.showStartPage;
                 return Stack(
                   children: [
                     webViewStack,
+                    if (showStart)
+                      Positioned.fill(
+                        child: StartPage(
+                          onUrlSelected: (url) {
+                            ref.read(browserProvider.notifier).hideStartPage(browserState.activeTabIndex);
+                            _activeController?.loadUrl(
+                              urlRequest: URLRequest(url: WebUri(url)),
+                            );
+                          },
+                        ),
+                      ),
                     Positioned(
                       left: _fabOffset!.dx,
                       top: _fabOffset!.dy,
@@ -142,11 +159,29 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
                             );
                           });
                         },
-                        child: Opacity(
-                          opacity: 0.6,
-                          child: FloatingActionButton.small(
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: context.appColors.surface,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: context.appColors.border, width: 0.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.06),
+                                blurRadius: 12,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
                             onPressed: () => setState(() => _isFullscreen = !_isFullscreen),
-                            child: Icon(_isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen),
+                            icon: Icon(
+                              _isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                              size: 18,
+                              color: context.appColors.fg2,
+                            ),
                           ),
                         ),
                       ),
@@ -207,78 +242,105 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
 
   void _showMoreMenu(BuildContext context) {
     final l = AppLocalizations.of(context)!;
+    final colors = context.appColors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showModalBottomSheet(
       context: context,
+      backgroundColor: colors.surfaceElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.share),
-              title: Text(l.share),
-              onTap: () {
-                Navigator.pop(ctx);
-                final url = ref.read(browserProvider).activeTab.url;
-                SharePlus.instance.share(ShareParams(uri: Uri.parse(url)));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.search),
-              title: Text(l.findInPage),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showFindInPage();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.desktop_mac),
-              title: Text(
-                ref.read(settingsProvider).uaMode == UaMode.desktop
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(0, 12, 0, 34),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: colors.border,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _SheetItem(
+                icon: Icons.share,
+                iconColor: const Color(0xFF0969DA),
+                label: l.share,
+                isDark: isDark,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  final url = ref.read(browserProvider).activeTab.url;
+                  SharePlus.instance.share(ShareParams(uri: Uri.parse(url)));
+                },
+              ),
+              _SheetItem(
+                icon: Icons.search,
+                iconColor: const Color(0xFF8250DF),
+                label: l.findInPage,
+                isDark: isDark,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showFindInPage();
+                },
+              ),
+              _SheetItem(
+                icon: Icons.desktop_mac,
+                iconColor: const Color(0xFF17A34A),
+                label: ref.read(settingsProvider).uaMode == UaMode.desktop
                     ? l.switchToMobileMode
                     : l.switchToDesktopMode,
+                isDark: isDark,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  final current = ref.read(settingsProvider).uaMode;
+                  ref.read(settingsProvider.notifier).setUaMode(
+                        current == UaMode.desktop
+                            ? UaMode.mobile
+                            : UaMode.desktop,
+                      );
+                  _activeController?.reload();
+                },
               ),
-              onTap: () {
-                Navigator.pop(ctx);
-                final current = ref.read(settingsProvider).uaMode;
-                ref.read(settingsProvider.notifier).setUaMode(
-                      current == UaMode.desktop
-                          ? UaMode.mobile
-                          : UaMode.desktop,
-                    );
-                _activeController?.reload();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.bookmark_add),
-              title: Text(l.addBookmark),
-              onTap: () {
-                Navigator.pop(ctx);
-                final tab = ref.read(browserProvider).activeTab;
-                ref.read(bookmarkProvider.notifier).addBookmark(
-                      tab.title.isEmpty ? tab.url : tab.title,
-                      tab.url,
-                    );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l.bookmarkAdded)),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.history),
-              title: Text(l.history),
-              onTap: () async {
-                Navigator.pop(ctx);
-                final url = await Navigator.push<String>(
-                  context,
-                  MaterialPageRoute(builder: (_) => const HistoryScreen()),
-                );
-                if (url != null) {
-                  _activeController?.loadUrl(
-                      urlRequest: URLRequest(url: WebUri(url)));
-                }
-              },
-            ),
-          ],
+              _SheetItem(
+                icon: Icons.bookmark_add,
+                iconColor: const Color(0xFFE8590C),
+                label: l.addBookmark,
+                isDark: isDark,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  final tab = ref.read(browserProvider).activeTab;
+                  ref.read(bookmarkProvider.notifier).addBookmark(
+                        tab.title.isEmpty ? tab.url : tab.title,
+                        tab.url,
+                      );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l.bookmarkAdded)),
+                  );
+                },
+              ),
+              _SheetItem(
+                icon: Icons.history,
+                iconColor: colors.muted,
+                label: l.history,
+                isDark: isDark,
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final url = await Navigator.push<String>(
+                    context,
+                    CupertinoPageRoute(builder: (_) => const HistoryScreen()),
+                  );
+                  if (url != null) {
+                    _activeController?.loadUrl(
+                        urlRequest: URLRequest(url: WebUri(url)));
+                  }
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -286,8 +348,13 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
 
   void _showFindInPage() {
     final l = AppLocalizations.of(context)!;
+    final colors = context.appColors;
     showModalBottomSheet(
       context: context,
+      backgroundColor: colors.surfaceElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (ctx) {
         final controller = TextEditingController();
         return Padding(
@@ -299,7 +366,11 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
                   controller: controller,
                   decoration: InputDecoration(
                     hintText: l.findInPageHint,
-                    border: const OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: colors.border),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   ),
                   autofocus: true,
                   onSubmitted: (query) {
@@ -308,17 +379,17 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.arrow_upward),
+                icon: Icon(Icons.arrow_upward, color: colors.fg2),
                 onPressed: () =>
                     _activeController?.findNext(forward: false),
               ),
               IconButton(
-                icon: const Icon(Icons.arrow_downward),
+                icon: Icon(Icons.arrow_downward, color: colors.fg2),
                 onPressed: () =>
                     _activeController?.findNext(forward: true),
               ),
               IconButton(
-                icon: const Icon(Icons.close),
+                icon: Icon(Icons.close, color: colors.fg2),
                 onPressed: () {
                   _activeController?.clearMatches();
                   Navigator.pop(ctx);
@@ -328,6 +399,46 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+class _SheetItem extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _SheetItem({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        child: Row(
+          children: [
+            ColoredIconBox.settings(
+              color: isDark ? const Color(0xFF2D333B) : iconColor,
+              icon: icon,
+            ),
+            const SizedBox(width: 14),
+            Text(
+              label,
+              style: TextStyle(fontSize: 16, color: colors.fg),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

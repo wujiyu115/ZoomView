@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zoomview/core/constants.dart';
+import 'package:zoomview/core/extensions.dart';
 
 class ZoomSlider extends StatelessWidget {
   final double zoomLevel;
@@ -17,20 +18,34 @@ class ZoomSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+
     return Container(
-      color: Theme.of(context).appBarTheme.backgroundColor,
-      padding: EdgeInsets.only(left: 8, right: 8, top: 4, bottom: 4 + bottomPadding),
+      decoration: BoxDecoration(
+        color: colors.zoomBg,
+        border: Border(top: BorderSide(color: colors.border, width: 0.5)),
+      ),
+      padding: EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 6 + bottomPadding),
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.zoom_out),
-            onPressed: () {
-              final newZoom =
-                  (zoomLevel - AppConstants.zoomStep).clamp(minZoom, maxZoom);
-              onChanged(double.parse(newZoom.toStringAsFixed(1)));
-            },
+          SizedBox(
+            width: 36,
+            height: 36,
+            child: IconButton(
+              icon: Icon(Icons.zoom_out, size: 20, color: colors.fg2),
+              onPressed: () {
+                final newZoom =
+                    (zoomLevel - AppConstants.zoomStep).clamp(minZoom, maxZoom);
+                onChanged(double.parse(newZoom.toStringAsFixed(1)));
+              },
+              padding: EdgeInsets.zero,
+              style: IconButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
           ),
+          const SizedBox(width: 10),
           Expanded(
             child: Slider(
               value: zoomLevel,
@@ -41,19 +56,34 @@ class ZoomSlider extends StatelessWidget {
                   onChanged(double.parse(v.toStringAsFixed(1))),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.zoom_in),
-            onPressed: () {
-              final newZoom =
-                  (zoomLevel + AppConstants.zoomStep).clamp(minZoom, maxZoom);
-              onChanged(double.parse(newZoom.toStringAsFixed(1)));
-            },
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 36,
+            height: 36,
+            child: IconButton(
+              icon: Icon(Icons.zoom_in, size: 20, color: colors.fg2),
+              onPressed: () {
+                final newZoom =
+                    (zoomLevel + AppConstants.zoomStep).clamp(minZoom, maxZoom);
+                onChanged(double.parse(newZoom.toStringAsFixed(1)));
+              },
+              padding: EdgeInsets.zero,
+              style: IconButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
           ),
+          const SizedBox(width: 10),
           SizedBox(
             width: 48,
             child: Text(
               '${(zoomLevel * 100).round()}%',
-              style: const TextStyle(fontSize: 12),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: colors.fg,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
               textAlign: TextAlign.center,
             ),
           ),

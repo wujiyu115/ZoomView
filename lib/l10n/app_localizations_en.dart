@@ -211,4 +211,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get downloading => 'Downloading...';
+
+  @override
+  String get searchOrEnterUrl => 'Search or enter URL';
+
+  @override
+  String get quickAccess => 'Quick Access';
+
+  @override
+  String get recentVisits => 'Recent Visits';
+
+  @override
+  String get done => 'Done';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get earlierThisWeek => 'Earlier This Week';
 }

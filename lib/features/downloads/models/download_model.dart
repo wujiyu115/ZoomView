@@ -26,6 +26,30 @@ class DownloadModel {
   double get progressPercent =>
       totalBytes > 0 ? downloadedBytes / totalBytes : 0;
 
+  DownloadModel copyWith({
+    int? id,
+    String? url,
+    String? fileName,
+    String? filePath,
+    String? mimeType,
+    int? totalBytes,
+    int? downloadedBytes,
+    DownloadStatus? status,
+    DateTime? createdAt,
+  }) {
+    return DownloadModel(
+      id: id ?? this.id,
+      url: url ?? this.url,
+      fileName: fileName ?? this.fileName,
+      filePath: filePath ?? this.filePath,
+      mimeType: mimeType ?? this.mimeType,
+      totalBytes: totalBytes ?? this.totalBytes,
+      downloadedBytes: downloadedBytes ?? this.downloadedBytes,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
   factory DownloadModel.fromMap(Map<String, dynamic> map) {
     return DownloadModel(
       id: map['id'] as int?,

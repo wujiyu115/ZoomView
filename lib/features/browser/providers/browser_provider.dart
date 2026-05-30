@@ -39,19 +39,31 @@ class BrowserNotifier extends Notifier<BrowserState> {
   @override
   BrowserState build() {
     return BrowserState(
-      tabs: [TabModel(url: AppConstants.defaultHomeUrl)],
+      tabs: [TabModel(url: '', showStartPage: true)],
     );
   }
 
-  void addTab(String url) {
-    final newTab = TabModel(url: url);
+  void addTab(String url, {bool showStartPage = false}) {
+    final newTab = TabModel(url: url, showStartPage: showStartPage);
     final newTabs = [...state.tabs, newTab];
     state = state.copyWith(tabs: newTabs, activeTabIndex: newTabs.length - 1);
   }
 
+  void showStartPageAt(int index) {
+    final newTabs = [...state.tabs];
+    newTabs[index] = newTabs[index].copyWith(showStartPage: true);
+    state = state.copyWith(tabs: newTabs);
+  }
+
+  void hideStartPage(int index) {
+    final newTabs = [...state.tabs];
+    newTabs[index] = newTabs[index].copyWith(showStartPage: false);
+    state = state.copyWith(tabs: newTabs);
+  }
+
   void closeTab(int index) {
     if (state.tabs.length <= 1) {
-      state = BrowserState(tabs: [TabModel(url: AppConstants.defaultHomeUrl)]);
+      state = BrowserState(tabs: [TabModel(url: '', showStartPage: true)]);
       return;
     }
     final newTabs = [...state.tabs]..removeAt(index);

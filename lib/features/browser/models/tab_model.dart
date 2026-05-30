@@ -9,6 +9,7 @@ class TabModel {
   final double zoomLevel;
   final double scrollPosition;
   final bool isActive;
+  final bool showStartPage;
   final DateTime createdAt;
 
   TabModel({
@@ -19,6 +20,7 @@ class TabModel {
     this.zoomLevel = 1.0,
     this.scrollPosition = 0,
     this.isActive = false,
+    this.showStartPage = false,
     DateTime? createdAt,
   })  : id = id ?? const Uuid().v4(),
         createdAt = createdAt ?? DateTime.now();
@@ -30,6 +32,7 @@ class TabModel {
     double? zoomLevel,
     double? scrollPosition,
     bool? isActive,
+    bool? showStartPage,
   }) {
     return TabModel(
       id: id,
@@ -39,6 +42,7 @@ class TabModel {
       zoomLevel: zoomLevel ?? this.zoomLevel,
       scrollPosition: scrollPosition ?? this.scrollPosition,
       isActive: isActive ?? this.isActive,
+      showStartPage: showStartPage ?? this.showStartPage,
       createdAt: createdAt,
     );
   }

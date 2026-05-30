@@ -487,6 +487,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Downloading...'**
   String get downloading;
+
+  /// No description provided for @searchOrEnterUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Search or enter URL'**
+  String get searchOrEnterUrl;
+
+  /// No description provided for @quickAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Access'**
+  String get quickAccess;
+
+  /// No description provided for @recentVisits.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Visits'**
+  String get recentVisits;
+
+  /// No description provided for @done.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get done;
+
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// No description provided for @earlierThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Earlier This Week'**
+  String get earlierThisWeek;
 }
 
 class _AppLocalizationsDelegate

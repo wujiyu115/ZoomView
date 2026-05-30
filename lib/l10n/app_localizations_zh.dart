@@ -210,4 +210,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get downloading => '下载中...';
+
+  @override
+  String get searchOrEnterUrl => '搜索或输入网址';
+
+  @override
+  String get quickAccess => '快速访问';
+
+  @override
+  String get recentVisits => '最近访问';
+
+  @override
+  String get done => '完成';
+
+  @override
+  String get edit => '编辑';
+
+  @override
+  String get earlierThisWeek => '本周早些时候';
 }

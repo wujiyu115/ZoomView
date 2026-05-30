@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zoomview/core/extensions.dart';
+import 'package:zoomview/core/widgets/ios_nav_header.dart';
+import 'package:zoomview/core/widgets/grouped_card.dart';
+import 'package:zoomview/core/widgets/colored_icon_box.dart';
+import 'package:zoomview/core/widgets/search_bar_widget.dart';
+import 'package:zoomview/core/widgets/section_header.dart';
 import 'package:zoomview/l10n/app_localizations.dart';
 import '../models/history_model.dart';
 import '../providers/history_provider.dart';
@@ -29,54 +35,50 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final entries = ref.watch(historyProvider);
+    final colors = context.appColors;
     final l = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l.history),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_sweep),
-            onPressed: entries.isEmpty ? null : () => _showClearDialog(context),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: l.searchHistory,
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          ref.read(historyProvider.notifier).search('');
-                          setState(() {});
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-              ),
-              onChanged: (query) {
-                ref.read(historyProvider.notifier).search(query);
-                setState(() {});
-              },
+      body: SafeArea(
+        child: Column(
+          children: [
+            IosNavHeader(
+              title: l.history,
+              trailing: entries.isEmpty
+                  ? null
+                  : GestureDetector(
+                      onTap: () => _showClearDialog(context),
+                      child: Text(
+                        l.clear,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: colors.danger,
+                        ),
+                      ),
+                    ),
             ),
-          ),
-          Expanded(
-            child: entries.isEmpty
-                ? Center(child: Text(l.noHistoryEntries))
-                : _buildGroupedList(entries),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SearchBarWidget(
+                hint: l.searchHistory,
+                controller: _searchController,
+                onChanged: (query) {
+                  ref.read(historyProvider.notifier).search(query);
+                  setState(() {});
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: entries.isEmpty
+                  ? Center(
+                      child: Text(l.noHistoryEntries, style: TextStyle(color: colors.muted)),
+                    )
+                  : _buildGroupedList(entries),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -107,63 +109,103 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     }
 
     return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       children: [
         if (todayEntries.isNotEmpty) ...[
-          _buildSectionHeader(l.today),
-          ...todayEntries.map(_buildEntryTile),
+          SectionHeader(label: l.today),
+          _buildGroup(todayEntries),
         ],
         if (yesterdayEntries.isNotEmpty) ...[
-          _buildSectionHeader(l.yesterday),
-          ...yesterdayEntries.map(_buildEntryTile),
+          SectionHeader(label: l.yesterday),
+          _buildGroup(yesterdayEntries),
         ],
         if (earlierEntries.isNotEmpty) ...[
-          _buildSectionHeader(l.earlier),
-          ...earlierEntries.map(_buildEntryTile),
+          SectionHeader(label: l.earlier),
+          _buildGroup(earlierEntries),
         ],
+        const SizedBox(height: 20),
       ],
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Colors.grey,
-        ),
-      ),
+  Widget _buildGroup(List<HistoryModel> entries) {
+    return GroupedCard(
+      children: entries.map((entry) => _buildEntryItem(entry)).toList(),
     );
   }
 
-  Widget _buildEntryTile(HistoryModel entry) {
+  Widget _buildEntryItem(HistoryModel entry) {
+    final colors = context.appColors;
+    final domain = Uri.tryParse(entry.url)?.host ?? entry.url;
+    final letter = entry.title.isNotEmpty
+        ? entry.title[0].toUpperCase()
+        : domain.isNotEmpty
+            ? domain[0].toUpperCase()
+            : '?';
+    final timeStr =
+        '${entry.visitedAt.hour.toString().padLeft(2, '0')}:${entry.visitedAt.minute.toString().padLeft(2, '0')}';
+
     return Dismissible(
       key: ValueKey(entry.id),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 16),
-        color: Colors.red,
+        color: colors.danger,
         child: const Icon(Icons.delete, color: Colors.white),
       ),
       onDismissed: (_) {
         ref.read(historyProvider.notifier).deleteEntry(entry.id!);
       },
-      child: ListTile(
-        leading: const Icon(Icons.history),
-        title: Text(
-          entry.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Text(
-          entry.url,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () => Navigator.pop(context, entry.url),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              ColoredIconBox(
+                color: colors.urlBg,
+                letter: letter,
+                size: 36,
+                borderRadius: 10,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.title.isNotEmpty ? entry.title : domain,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: colors.fg,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      domain,
+                      style: TextStyle(fontSize: 12, color: colors.muted),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                timeStr,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colors.muted,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -185,7 +227,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               ref.read(historyProvider.notifier).clearAll();
               Navigator.pop(ctx);
             },
-            child: Text(l.clear),
+            child: Text(l.clear, style: TextStyle(color: context.appColors.danger)),
           ),
         ],
       ),

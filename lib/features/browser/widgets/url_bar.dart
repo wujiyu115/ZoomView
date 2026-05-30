@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zoomview/core/extensions.dart';
 
 class UrlBar extends StatefulWidget {
   final String url;
@@ -44,29 +45,29 @@ class _UrlBarState extends State<UrlBar> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(24),
+            color: colors.urlBg,
+            borderRadius: BorderRadius.circular(22),
           ),
           child: Row(
             children: [
-              const Padding(
-                padding: EdgeInsets.only(left: 12),
-                child: Icon(Icons.lock_outline, size: 16, color: Colors.grey),
-              ),
+              Icon(Icons.lock_outline, size: 14, color: colors.muted),
+              const SizedBox(width: 8),
               Expanded(
                 child: TextField(
                   controller: _controller,
-                  style: const TextStyle(fontSize: 14),
+                  style: TextStyle(fontSize: 14, color: colors.fg2),
                   decoration: const InputDecoration(
                     border: InputBorder.none,
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                    contentPadding: EdgeInsets.symmetric(vertical: 10),
                   ),
                   keyboardType: TextInputType.url,
                   textInputAction: TextInputAction.go,
@@ -88,21 +89,26 @@ class _UrlBarState extends State<UrlBar> {
                 ),
               ),
               if (widget.isLoading)
-                const Padding(
-                  padding: EdgeInsets.only(right: 12),
-                  child: SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: colors.accent,
                   ),
                 ),
             ],
           ),
         ),
         if (widget.isLoading)
-          LinearProgressIndicator(
-            value: widget.progress,
-            minHeight: 2,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: LinearProgressIndicator(
+              value: widget.progress,
+              minHeight: 2,
+              backgroundColor: Colors.transparent,
+              color: colors.accent,
+            ),
           ),
       ],
     );

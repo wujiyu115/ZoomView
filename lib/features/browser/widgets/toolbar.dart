@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:zoomview/core/extensions.dart';
+import 'package:zoomview/core/widgets/frosted_container.dart';
 
 class BrowserToolbar extends StatelessWidget {
   final VoidCallback onHome;
@@ -28,25 +30,25 @@ class BrowserToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Theme.of(context).appBarTheme.backgroundColor,
+    return FrostedContainer(
       child: SafeArea(
         bottom: false,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            Flexible(child: _ToolbarButton(icon: Icons.home_outlined, onTap: onHome)),
-            Flexible(child: _ToolbarButton(icon: Icons.bookmark_outline, onTap: onBookmarks)),
-            Flexible(child: _ToolbarButton(icon: Icons.refresh, onTap: onRefresh)),
-            Flexible(child: _ToolbarButton(
-                icon: Icons.arrow_back_ios_new, onTap: onBack, size: 20)),
-            Flexible(child: _ToolbarButton(
-                icon: Icons.arrow_forward_ios, onTap: onForward, size: 20)),
-            Flexible(child: _ToolbarButton(icon: Icons.more_horiz, onTap: onMore)),
-            Flexible(child: _ToolbarButton(icon: Icons.settings_outlined, onTap: onSettings)),
-            Flexible(child: _ToolbarButton(icon: Icons.grid_view_rounded, onTap: onTabs)),
-            Flexible(child: _DownloadButton(onTap: onDownloads, isDownloading: isDownloading)),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _ToolbarButton(icon: Icons.home_outlined, onTap: onHome),
+              _ToolbarButton(icon: Icons.bookmark_outline, onTap: onBookmarks),
+              _ToolbarButton(icon: Icons.refresh, onTap: onRefresh),
+              _ToolbarButton(icon: Icons.arrow_back_ios_new, onTap: onBack, iconSize: 20),
+              _ToolbarButton(icon: Icons.arrow_forward_ios, onTap: onForward, iconSize: 20),
+              _ToolbarButton(icon: Icons.more_horiz, onTap: onMore),
+              _ToolbarButton(icon: Icons.settings_outlined, onTap: onSettings),
+              _ToolbarButton(icon: Icons.grid_view_rounded, onTap: onTabs),
+              _DownloadButton(onTap: onDownloads, isDownloading: isDownloading),
+            ],
+          ),
         ),
       ),
     );
@@ -56,21 +58,27 @@ class BrowserToolbar extends StatelessWidget {
 class _ToolbarButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-  final double size;
+  final double iconSize;
 
   const _ToolbarButton({
     required this.icon,
     required this.onTap,
-    this.size = 24,
+    this.iconSize = 22,
   });
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      icon: Icon(icon, size: size),
-      onPressed: onTap,
-      padding: const EdgeInsets.all(4),
-      constraints: const BoxConstraints(minWidth: 32, minHeight: 36),
+    final colors = context.appColors;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 36,
+        height: 40,
+        child: Center(
+          child: Icon(icon, size: iconSize, color: colors.fg2),
+        ),
+      ),
     );
   }
 }
@@ -122,31 +130,39 @@ class _DownloadButtonState extends State<_DownloadButton>
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+
     if (!widget.isDownloading) {
-      return IconButton(
-        icon: const Icon(Icons.download_outlined, size: 24),
-        onPressed: widget.onTap,
-        padding: const EdgeInsets.all(4),
-        constraints: const BoxConstraints(minWidth: 32, minHeight: 36),
+      return GestureDetector(
+        onTap: widget.onTap,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: 36,
+          height: 40,
+          child: Center(
+            child: Icon(Icons.download_outlined, size: 22, color: colors.fg2),
+          ),
+        ),
       );
     }
 
     return AnimatedBuilder(
       animation: _animation,
       builder: (context, child) {
-        return IconButton(
-          icon: Icon(
-            Icons.downloading_rounded,
-            size: 24,
-            color: Color.lerp(
-              Theme.of(context).iconTheme.color,
-              Colors.blue,
-              _animation.value,
+        return GestureDetector(
+          onTap: widget.onTap,
+          behavior: HitTestBehavior.opaque,
+          child: SizedBox(
+            width: 36,
+            height: 40,
+            child: Center(
+              child: Icon(
+                Icons.downloading_rounded,
+                size: 22,
+                color: Color.lerp(colors.fg2, colors.accent, _animation.value),
+              ),
             ),
           ),
-          onPressed: widget.onTap,
-          padding: const EdgeInsets.all(4),
-          constraints: const BoxConstraints(minWidth: 32, minHeight: 36),
         );
       },
     );

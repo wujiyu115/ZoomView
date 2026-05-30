@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:zoomview/core/extensions.dart';
+import 'package:zoomview/core/widgets/ios_nav_header.dart';
+import 'package:zoomview/core/widgets/grouped_card.dart';
+import 'package:zoomview/core/widgets/colored_icon_box.dart';
+import 'package:zoomview/core/widgets/ios_toggle.dart';
+import 'package:zoomview/core/widgets/section_header.dart';
 import 'package:zoomview/l10n/app_localizations.dart';
 import '../models/settings_model.dart';
 import '../providers/settings_provider.dart';
@@ -11,92 +17,129 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
+    final colors = context.appColors;
     final l = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l.settings)),
-      body: ListView(
-        children: [
-          _sectionHeader(l.browsing),
-          SwitchListTile(
-            title: Text(l.desktopMode),
-            subtitle: Text(l.desktopModeSubtitle),
-            value: settings.uaMode == UaMode.desktop,
-            onChanged: (v) => ref
-                .read(settingsProvider.notifier)
-                .setUaMode(v ? UaMode.desktop : UaMode.mobile),
-          ),
-          ListTile(
-            title: Text(l.searchEngine),
-            subtitle: Text(settings.searchEngine),
-            onTap: () => _showSearchEnginePicker(context, ref, settings),
-          ),
-          ListTile(
-            title: Text(l.homePage),
-            subtitle: Text(settings.homeUrl),
-            onTap: () => _showHomeUrlEditor(context, ref, settings),
-          ),
-          ListTile(
-            title: Text(l.viewportWidth),
-            subtitle: Text(l.viewportWidthValue(settings.viewportWidth)),
-            onTap: () => _showViewportPicker(context, ref, settings),
-          ),
-          _sectionHeader(l.zoom),
-          ListTile(
-            title: Text(l.defaultZoom),
-            subtitle: Text(l.zoomPercent((settings.defaultZoom * 100).round())),
-          ),
-          _sectionHeader(l.privacy),
-          ListTile(
-            title: Text(l.clearCookies),
-            leading: const Icon(Icons.cookie_outlined),
-            onTap: () async {
-              await CookieManager.instance().deleteAllCookies();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l.cookiesCleared)),
-                );
-              }
-            },
-          ),
-          ListTile(
-            title: Text(l.clearCache),
-            leading: const Icon(Icons.cached),
-            onTap: () async {
-              await InAppWebViewController.clearAllCache();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l.cacheCleared)),
-                );
-              }
-            },
-          ),
-          _sectionHeader(l.appearance),
-          SwitchListTile(
-            title: Text(l.darkMode),
-            value: settings.darkMode,
-            onChanged: (v) =>
-                ref.read(settingsProvider.notifier).setDarkMode(v),
-          ),
-          _sectionHeader(l.about),
-          ListTile(
-            title: Text(l.zoomViewBrowser),
-            subtitle: Text(l.version('1.0.0')),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-      child: Text(
-        title,
-        style: const TextStyle(
-          color: Colors.blue,
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
+      body: SafeArea(
+        child: Column(
+          children: [
+            IosNavHeader(title: l.settings),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  SectionHeader(label: l.browsing, useAccentColor: true),
+                  GroupedCard(
+                    children: [
+                      _SettingsRow(
+                        icon: Icons.desktop_mac,
+                        iconColor: const Color(0xFF0969DA),
+                        title: l.desktopMode,
+                        subtitle: l.desktopModeSubtitle,
+                        trailing: IosToggle(
+                          value: settings.uaMode == UaMode.desktop,
+                          onChanged: (v) => ref
+                              .read(settingsProvider.notifier)
+                              .setUaMode(v ? UaMode.desktop : UaMode.mobile),
+                        ),
+                      ),
+                      _SettingsRow(
+                        icon: Icons.search,
+                        iconColor: const Color(0xFF8250DF),
+                        title: l.searchEngine,
+                        value: settings.searchEngine,
+                        onTap: () => _showSearchEnginePicker(context, ref, settings),
+                      ),
+                      _SettingsRow(
+                        icon: Icons.home,
+                        iconColor: const Color(0xFF17A34A),
+                        title: l.homePage,
+                        value: settings.homeUrl,
+                        onTap: () => _showHomeUrlEditor(context, ref, settings),
+                      ),
+                      _SettingsRow(
+                        icon: Icons.aspect_ratio,
+                        iconColor: const Color(0xFFE8590C),
+                        title: l.viewportWidth,
+                        value: l.viewportWidthValue(settings.viewportWidth),
+                        onTap: () => _showViewportPicker(context, ref, settings),
+                      ),
+                    ],
+                  ),
+                  SectionHeader(label: l.zoom, useAccentColor: true),
+                  GroupedCard(
+                    children: [
+                      _SettingsRow(
+                        icon: Icons.zoom_in,
+                        iconColor: const Color(0xFF0969DA),
+                        title: l.defaultZoom,
+                        value: l.zoomPercent((settings.defaultZoom * 100).round()),
+                      ),
+                    ],
+                  ),
+                  SectionHeader(label: l.privacy, useAccentColor: true),
+                  GroupedCard(
+                    children: [
+                      _SettingsRow(
+                        icon: Icons.cookie_outlined,
+                        iconColor: const Color(0xFFE8590C),
+                        title: l.clearCookies,
+                        onTap: () async {
+                          await CookieManager.instance().deleteAllCookies();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(l.cookiesCleared)),
+                            );
+                          }
+                        },
+                      ),
+                      _SettingsRow(
+                        icon: Icons.cached,
+                        iconColor: const Color(0xFF17A34A),
+                        title: l.clearCache,
+                        onTap: () async {
+                          await InAppWebViewController.clearAllCache();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(l.cacheCleared)),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  SectionHeader(label: l.appearance, useAccentColor: true),
+                  GroupedCard(
+                    children: [
+                      _SettingsRow(
+                        icon: Icons.dark_mode,
+                        iconColor: const Color(0xFF8250DF),
+                        title: l.darkMode,
+                        trailing: IosToggle(
+                          value: settings.darkMode,
+                          onChanged: (v) =>
+                              ref.read(settingsProvider.notifier).setDarkMode(v),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SectionHeader(label: l.about, useAccentColor: true),
+                  GroupedCard(
+                    children: [
+                      _SettingsRow(
+                        icon: Icons.info_outline,
+                        iconColor: colors.muted,
+                        title: l.zoomViewBrowser,
+                        value: l.version('1.0.0'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -190,6 +233,64 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SettingsRow extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String? subtitle;
+  final String? value;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  const _SettingsRow({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    this.subtitle,
+    this.value,
+    this.trailing,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            ColoredIconBox.settings(color: iconColor, icon: icon),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(title, style: TextStyle(fontSize: 15, color: colors.fg)),
+                  if (subtitle != null)
+                    Text(subtitle!, style: TextStyle(fontSize: 12, color: colors.muted)),
+                ],
+              ),
+            ),
+            ?trailing,
+            if (value != null && trailing == null) ...[
+              Text(value!, style: TextStyle(fontSize: 14, color: colors.muted)),
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right, size: 16, color: colors.border),
+            ],
+            if (onTap != null && value == null && trailing == null)
+              Icon(Icons.chevron_right, size: 16, color: colors.border),
+          ],
+        ),
       ),
     );
   }

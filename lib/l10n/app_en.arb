@@ -84,5 +84,11 @@
   "back": "Back",
   "downloadConfirmTitle": "Download File",
   "download": "Download",
-  "downloading": "Downloading..."
+  "downloading": "Downloading...",
+  "searchOrEnterUrl": "Search or enter URL",
+  "quickAccess": "Quick Access",
+  "recentVisits": "Recent Visits",
+  "done": "Done",
+  "edit": "Edit",
+  "earlierThisWeek": "Earlier This Week"
 }

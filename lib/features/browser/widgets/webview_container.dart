@@ -123,7 +123,7 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
     );
 
     return InAppWebView(
-      initialUrlRequest: URLRequest(url: WebUri(widget.initialUrl)),
+      initialUrlRequest: URLRequest(url: WebUri(widget.initialUrl.isEmpty ? 'about:blank' : widget.initialUrl)),
       initialUserScripts: UnmodifiableListView([colorSchemeScript]),
       initialSettings: InAppWebViewSettings(
         userAgent: ua,
@@ -344,13 +344,30 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
 
         final mimeType = response.mimeType?.toLowerCase() ?? '';
         final url = response.url;
+        final headers = response.headers ?? {};
+        final contentDisposition = headers['Content-Disposition']?.toLowerCase()
+            ?? headers['content-disposition']?.toLowerCase()
+            ?? '';
+        final isAttachment = contentDisposition.contains('attachment');
+
         if (!navigationResponse.canShowMIMEType ||
-            _isDownloadMimeType(mimeType) ||
+            isAttachment ||
+            (mimeType.isNotEmpty && !_isWebMimeType(mimeType)) ||
             (url != null && _isDownloadUrl(url))) {
           final fileName = response.suggestedFilename ??
+              _fileNameFromDisposition(contentDisposition) ??
               (url != null ? _extractFileName(url) : 'download');
           widget.onDownloadUrlDetected?.call(
               url?.toString() ?? '', fileName);
+          Future.microtask(() async {
+            if (await controller.canGoBack()) {
+              controller.goBack();
+            } else {
+              controller.loadUrl(urlRequest: URLRequest(url: WebUri('about:blank')));
+              ref.read(browserProvider.notifier).showStartPageAt(widget.tabIndex);
+              ref.read(browserProvider.notifier).updateUrl(widget.tabIndex, '');
+            }
+          });
           return NavigationResponseAction.CANCEL;
         }
         return NavigationResponseAction.ALLOW;
@@ -389,26 +406,37 @@ bool _isDownloadUrl(Uri uri) {
   return false;
 }
 
-bool _isDownloadMimeType(String mimeType) {
-  if (mimeType.isEmpty) return false;
-  const types = [
-    'application/octet-stream',
-    'application/zip',
-    'application/x-zip-compressed',
-    'application/gzip',
-    'application/x-gzip',
-    'application/x-tar',
-    'application/x-7z-compressed',
-    'application/x-rar-compressed',
-    'application/x-apple-diskimage',
-    'application/vnd.android.package-archive',
-    'application/x-msdownload',
-    'application/x-msi',
-    'application/x-debian-package',
-    'application/x-rpm',
-    'application/x-iso9660-image',
+bool _isWebMimeType(String mimeType) {
+  if (mimeType.startsWith('text/')) return true;
+  if (mimeType.startsWith('image/')) return true;
+  if (mimeType.startsWith('audio/')) return true;
+  if (mimeType.startsWith('video/')) return true;
+  const webTypes = [
+    'application/json',
+    'application/javascript',
+    'application/xml',
+    'application/xhtml+xml',
+    'application/pdf',
+    'application/x-javascript',
+    'application/ecmascript',
+    'application/rss+xml',
+    'application/atom+xml',
+    'application/wasm',
+    'application/manifest+json',
+    'multipart/form-data',
   ];
-  return types.contains(mimeType);
+  return webTypes.contains(mimeType);
+}
+
+String? _fileNameFromDisposition(String disposition) {
+  if (disposition.isEmpty) return null;
+  final regex = RegExp(r'''filename\*?=(?:UTF-8''|"?)([^";]+)"?''', caseSensitive: false);
+  final match = regex.firstMatch(disposition);
+  if (match != null) {
+    final name = Uri.decodeFull(match.group(1)!.trim());
+    if (name.isNotEmpty) return name;
+  }
+  return null;
 }
 
 String _extractFileName(Uri uri) {

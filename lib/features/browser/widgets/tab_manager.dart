@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zoomview/core/extensions.dart';
+import 'package:zoomview/core/widgets/ios_nav_header.dart';
 import 'package:zoomview/features/browser/providers/browser_provider.dart';
-import 'package:zoomview/core/constants.dart';
 import 'package:zoomview/l10n/app_localizations.dart';
 
 class TabManager extends ConsumerWidget {
@@ -10,102 +11,186 @@ class TabManager extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final browserState = ref.watch(browserProvider);
+    final colors = context.appColors;
     final l = AppLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l.tabsCount(browserState.tabs.length)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              ref.read(browserProvider.notifier).addTab(AppConstants.defaultHomeUrl);
-              Navigator.pop(context);
-            },
-          ),
-        ],
-      ),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(8),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 0.75,
-        ),
-        itemCount: browserState.tabs.length,
-        itemBuilder: (context, index) {
-          final tab = browserState.tabs[index];
-          final isActive = index == browserState.activeTabIndex;
-
-          final colorScheme = Theme.of(context).colorScheme;
-
-          return GestureDetector(
-            onTap: () {
-              ref.read(browserProvider.notifier).switchTab(index);
-              Navigator.pop(context);
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: isActive ? Colors.blue : colorScheme.outline,
-                  width: isActive ? 2 : 1,
+      body: SafeArea(
+        child: Column(
+          children: [
+            IosNavHeader(
+              title: l.tabsCount(browserState.tabs.length),
+              showBack: false,
+              largeTitle: true,
+              trailing: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Text(
+                  l.done,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: colors.accent,
+                  ),
                 ),
-                borderRadius: BorderRadius.circular(12),
-                color: colorScheme.surfaceContainer,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest,
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(11),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            tab.title.isEmpty ? l.newTab : tab.title,
-                            style: const TextStyle(fontSize: 12),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            ref.read(browserProvider.notifier).closeTab(index);
-                          },
-                          child: const Icon(Icons.close, size: 16),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Text(
-                          tab.url,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ),
-          );
-        },
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                '${browserState.tabs.length} ${browserState.tabs.length == 1 ? 'tab' : 'tabs'}',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: colors.muted),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 14,
+                  crossAxisSpacing: 14,
+                  childAspectRatio: 0.72,
+                ),
+                itemCount: browserState.tabs.length,
+                itemBuilder: (context, index) {
+                  final tab = browserState.tabs[index];
+                  final isActive = index == browserState.activeTabIndex;
+                  final domain = Uri.tryParse(tab.url)?.host ?? tab.url;
+
+                  return GestureDetector(
+                    onTap: () {
+                      ref.read(browserProvider.notifier).switchTab(index);
+                      Navigator.pop(context);
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: colors.surface,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isActive ? colors.accent : Colors.transparent,
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.06),
+                            blurRadius: 6,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Stack(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              AspectRatio(
+                                aspectRatio: 4 / 3,
+                                child: Container(
+                                  color: colors.urlBg,
+                                  alignment: Alignment.center,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.language, size: 28, color: colors.muted),
+                                      const SizedBox(height: 4),
+                                      Container(
+                                        margin: const EdgeInsets.symmetric(horizontal: 12),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: colors.surface.withValues(alpha: 0.8),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          domain,
+                                          style: TextStyle(fontSize: 10, color: colors.muted),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tab.title.isEmpty ? l.newTab : tab.title,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: colors.fg,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      domain,
+                                      style: TextStyle(fontSize: 11, color: colors.muted),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          Positioned(
+                            top: 6,
+                            right: 6,
+                            child: GestureDetector(
+                              onTap: () => ref.read(browserProvider.notifier).closeTab(index),
+                              child: Container(
+                                width: 22,
+                                height: 22,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: isDark ? 0.55 : 0.35),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.close, size: 12, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () {
+                    ref.read(browserProvider.notifier).addTab(
+                      '',
+                      showStartPage: true,
+                    );
+                    Navigator.pop(context);
+                  },
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.add, size: 20),
+                      const SizedBox(width: 8),
+                      Text(l.newTab, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
