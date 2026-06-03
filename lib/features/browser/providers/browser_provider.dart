@@ -51,7 +51,7 @@ class BrowserNotifier extends Notifier<BrowserState> {
 
   void showStartPageAt(int index) {
     final newTabs = [...state.tabs];
-    newTabs[index] = newTabs[index].copyWith(showStartPage: true);
+    newTabs[index] = newTabs[index].copyWith(showStartPage: true, url: '');
     state = state.copyWith(tabs: newTabs);
   }
 
