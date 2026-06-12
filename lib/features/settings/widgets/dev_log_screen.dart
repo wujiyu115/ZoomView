@@ -26,6 +26,20 @@ class DevLogScreen extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   GestureDetector(
+                    onTap: () {
+                      final text = AppLogger.instance.export();
+                      if (text.isEmpty) return;
+                      Clipboard.setData(ClipboardData(text: text));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(l.logsCopied)),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Icon(Icons.copy, size: 20, color: colors.accent),
+                    ),
+                  ),
+                  GestureDetector(
                     onTap: () => _exportLogs(context),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),

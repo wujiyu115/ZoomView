@@ -218,6 +218,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
   }
 
   void _showDownloadConfirmDialog(String url, String fileName) {
+    debugPrint('[Download] _showDownloadConfirmDialog: url=$url fileName=$fileName');
     final l = AppLocalizations.of(context)!;
     showDialog(
       context: context,

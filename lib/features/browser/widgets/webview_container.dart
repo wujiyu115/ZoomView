@@ -175,9 +175,9 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
     window.Notification.requestPermission = function() { return Promise.resolve('default'); };
   }
 
-  // hide InAppWebView markers
+  // hide InAppWebView markers (keep flutter_inappwebview bridge functional)
   try { delete window.__InAppBrowser; } catch(e) {}
-  try { delete window.flutter_inappwebview; } catch(e) {}
+  try { Object.defineProperty(window, 'flutter_inappwebview', { enumerable: false }); } catch(e) {}
 
   // WebGL vendor/renderer consistency (Apple GPU)
   var origGetParameter = WebGLRenderingContext.prototype.getParameter;
@@ -226,8 +226,10 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
       ),
       shouldOverrideUrlLoading: (controller, navigationAction) async {
         final uri = navigationAction.request.url;
+        AppLogger.instance.d('Download', 'shouldOverrideUrlLoading: url=$uri isDownload=${uri != null ? _isDownloadUrl(uri) : false}');
         if (uri != null && _isDownloadUrl(uri)) {
           final fileName = _extractFileName(uri);
+          AppLogger.instance.i('Download', 'INTERCEPTED download url=$uri fileName=$fileName');
           widget.onDownloadUrlDetected?.call(uri.toString(), fileName);
           return NavigationActionPolicy.CANCEL;
         }
@@ -244,6 +246,7 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
         controller.addJavaScriptHandler(
           handlerName: 'onDownloadLink',
           callback: (args) {
+            AppLogger.instance.i('Download', 'JS bridge onDownloadLink: args=$args');
             if (args.isNotEmpty) {
               final url = args[0].toString();
               final fileName =
@@ -336,18 +339,30 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
               return false;
             }
             document.addEventListener('click', function(e) {
-              var link = e.target.closest('a[href]');
-              if (!link) return;
+              var el = e.target;
+              var tag = el ? (el.tagName || '') + '.' + (el.className || '') : 'null';
+              var link = el ? el.closest('a[href]') : null;
+              if (!link) {
+                console.log('[DL-INTERCEPT] click on non-link: tag=' + tag + ' outerHTML=' + (el ? el.outerHTML.substring(0, 200) : 'null'));
+                return;
+              }
               var href = link.getAttribute('href');
               if (!href) return;
-              if (link.hasAttribute('download') || isDl(href)) {
-                e.preventDefault();
-                e.stopPropagation();
+              var hasDlAttr = link.hasAttribute('download');
+              var matchesDl = isDl(href);
+              console.log('[DL-INTERCEPT] click on link: href=' + href + ' download=' + hasDlAttr + ' isDl=' + matchesDl);
+              if (hasDlAttr || matchesDl) {
                 try {
                   var u = new URL(href, location.href);
                   var name = u.pathname.split('/').pop() || 'download';
-                  window.flutter_inappwebview.callHandler('onDownloadLink', u.href, name);
-                } catch(err) {}
+                  var bridgeOk = !!(window.flutter_inappwebview && window.flutter_inappwebview.callHandler);
+                  console.log('[DL-INTERCEPT] MATCH: url=' + u.href + ' name=' + name + ' bridge=' + bridgeOk);
+                  if (bridgeOk) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.flutter_inappwebview.callHandler('onDownloadLink', u.href, name);
+                  }
+                } catch(err) { console.log('[DL-INTERCEPT] ERROR: ' + err.message); }
               }
             }, true);
           })();
@@ -405,6 +420,8 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
             ?? '';
         final isAttachment = contentDisposition.contains('attachment');
 
+        AppLogger.instance.d('Download', 'onNavigationResponse: url=$url mime=$mimeType canShow=${navigationResponse.canShowMIMEType} isAttachment=$isAttachment isDownloadUrl=${url != null ? _isDownloadUrl(url) : false}');
+
         if (!navigationResponse.canShowMIMEType ||
             isAttachment ||
             (mimeType.isNotEmpty && !_isWebMimeType(mimeType)) ||
@@ -431,6 +448,7 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
         ref.read(browserProvider.notifier).setProgress(progress / 100.0);
       },
       onDownloadStartRequest: (controller, request) {
+        AppLogger.instance.i('Download', 'onDownloadStartRequest: url=${request.url} mime=${request.mimeType} filename=${request.suggestedFilename} contentLength=${request.contentLength}');
         widget.onDownloadRequested?.call(request);
       },
     );
