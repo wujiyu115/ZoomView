@@ -21,12 +21,22 @@ class UrlBar extends StatefulWidget {
 
 class _UrlBarState extends State<UrlBar> {
   late TextEditingController _controller;
+  late FocusNode _focusNode;
   bool _isEditing = false;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.url);
+    _focusNode = FocusNode();
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (!_focusNode.hasFocus) {
+      setState(() => _isEditing = false);
+      _controller.text = widget.url;
+    }
   }
 
   @override
@@ -39,6 +49,8 @@ class _UrlBarState extends State<UrlBar> {
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -64,6 +76,7 @@ class _UrlBarState extends State<UrlBar> {
               Expanded(
                 child: TextField(
                   controller: _controller,
+                  focusNode: _focusNode,
                   style: TextStyle(fontSize: 14, color: colors.fg2),
                   decoration: const InputDecoration(
                     border: InputBorder.none,
