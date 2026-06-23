@@ -47,6 +47,7 @@ class _UrlBarState extends State<UrlBar> {
 
   void _onFocusChange() {
     if (!_focusNode.hasFocus) {
+      _debounce?.cancel();
       setState(() => _isEditing = false);
       _controller.text = widget.url;
       _dismissOverlay();
@@ -110,7 +111,7 @@ class _UrlBarState extends State<UrlBar> {
       }
     }
 
-    if (!mounted) return;
+    if (!mounted || !_focusNode.hasFocus) return;
     setState(() => _suggestions = merged);
 
     if (merged.isEmpty) {
@@ -121,7 +122,10 @@ class _UrlBarState extends State<UrlBar> {
   }
 
   void _showOverlay() {
-    _dismissOverlay();
+    if (_overlayEntry != null) {
+      _overlayEntry!.markNeedsBuild();
+      return;
+    }
     _overlayEntry = OverlayEntry(builder: (_) => _buildOverlay());
     Overlay.of(context).insert(_overlayEntry!);
   }
@@ -133,12 +137,13 @@ class _UrlBarState extends State<UrlBar> {
 
   Widget _buildOverlay() {
     final colors = context.appColors;
+    final renderBox = context.findRenderObject() as RenderBox;
     return Positioned(
       width: MediaQuery.of(context).size.width - 32,
       child: CompositedTransformFollower(
         link: _layerLink,
         showWhenUnlinked: false,
-        offset: const Offset(0, 48),
+        offset: Offset(0, renderBox.size.height),
         child: Material(
           elevation: 4,
           borderRadius: BorderRadius.circular(12),
@@ -158,9 +163,9 @@ class _UrlBarState extends State<UrlBar> {
   Widget _buildSuggestionTile(_Suggestion suggestion, AppColors colors) {
     return InkWell(
       onTap: () {
-        _focusNode.unfocus();
         _dismissOverlay();
         widget.onSubmitted(suggestion.url);
+        _focusNode.unfocus();
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
