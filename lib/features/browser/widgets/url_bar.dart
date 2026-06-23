@@ -235,7 +235,12 @@ class _UrlBarState extends State<UrlBar> {
                     ),
                     keyboardType: TextInputType.url,
                     textInputAction: TextInputAction.go,
-                    onTap: () => setState(() => _isEditing = true),
+                    onTap: () {
+                      setState(() => _isEditing = true);
+                      if (_controller.text == 'about:blank') {
+                        _controller.clear();
+                      }
+                    },
                     onChanged: _onSearchChanged,
                     onSubmitted: (value) {
                       _dismissOverlay();
