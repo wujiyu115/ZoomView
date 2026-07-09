@@ -67,6 +67,18 @@ class SettingsScreen extends ConsumerWidget {
                         value: l.viewportWidthValue(settings.viewportWidth),
                         onTap: () => _showViewportPicker(context, ref, settings),
                       ),
+                      _SettingsRow(
+                        icon: Icons.restore,
+                        iconColor: const Color(0xFF17A34A),
+                        title: l.sessionRestore,
+                        subtitle: l.sessionRestoreSubtitle,
+                        trailing: IosToggle(
+                          value: settings.sessionRestore,
+                          onChanged: (v) => ref
+                              .read(settingsProvider.notifier)
+                              .setSessionRestore(v),
+                        ),
+                      ),
                     ],
                   ),
                   SectionHeader(label: l.zoom, useAccentColor: true),

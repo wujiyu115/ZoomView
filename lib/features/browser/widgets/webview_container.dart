@@ -37,6 +37,7 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
   bool _ignoreZoomChanges = false;
   int _loadId = 0;
   double _lastObservedScale = 0;
+  bool _scrollRestored = false;
 
   @override
   void initState() {
@@ -380,6 +381,13 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
             await _controller!.zoomBy(
                 zoomFactor: storedZoom, animated: false);
           }
+          final storedScroll =
+              ref.read(browserProvider).tabs[widget.tabIndex].scrollPosition;
+          if (!_scrollRestored && storedScroll > 0 && _controller != null) {
+            await _controller!
+                .scrollTo(x: 0, y: storedScroll.toInt(), animated: false);
+          }
+          _scrollRestored = true;
           if (mounted && _loadId == myLoadId) {
             _ignoreZoomChanges = false;
           }

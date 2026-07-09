@@ -565,6 +565,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Logs copied'**
   String get logsCopied;
+
+  /// No description provided for @sessionRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore Tabs'**
+  String get sessionRestore;
+
+  /// No description provided for @sessionRestoreSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reopen last session\'s tabs on launch'**
+  String get sessionRestoreSubtitle;
 }
 
 class _AppLocalizationsDelegate

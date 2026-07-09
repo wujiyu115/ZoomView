@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:zoomview/core/extensions.dart';
 import 'package:zoomview/core/widgets/colored_icon_box.dart';
+import 'package:zoomview/features/browser/models/tab_model.dart';
 import 'package:zoomview/features/browser/providers/browser_provider.dart';
+import 'package:zoomview/features/browser/repositories/session_repository.dart';
 import 'package:zoomview/features/settings/models/settings_model.dart';
 import 'package:zoomview/features/settings/providers/settings_provider.dart';
 import 'package:zoomview/features/bookmarks/providers/bookmark_provider.dart';
@@ -30,7 +32,8 @@ class BrowserScreen extends ConsumerStatefulWidget {
   ConsumerState<BrowserScreen> createState() => _BrowserScreenState();
 }
 
-class _BrowserScreenState extends ConsumerState<BrowserScreen> {
+class _BrowserScreenState extends ConsumerState<BrowserScreen>
+    with WidgetsBindingObserver {
   final Map<String, InAppWebViewController> _controllers = {};
   bool _isFullscreen = false;
   Offset? _fabOffset;
@@ -43,7 +46,49 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(settingsProvider.notifier).load());
+    WidgetsBinding.instance.addObserver(this);
+    Future.microtask(() async {
+      await ref.read(settingsProvider.notifier).load();
+      if (!mounted) return;
+      if (!ref.read(settingsProvider).sessionRestore) return;
+      final data = await ref.read(sessionRepositoryProvider).load();
+      if (data != null) {
+        ref
+            .read(browserProvider.notifier)
+            .restoreTabs(data.tabs, data.activeIndex);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
+    if (lifecycleState == AppLifecycleState.paused ||
+        lifecycleState == AppLifecycleState.detached) {
+      _saveSession();
+    }
+  }
+
+  Future<void> _saveSession() async {
+    if (!ref.read(settingsProvider).sessionRestore) return;
+    final state = ref.read(browserProvider);
+    final tabs = <TabModel>[];
+    for (final tab in state.tabs) {
+      final controller = _controllers[tab.id];
+      var scroll = tab.scrollPosition;
+      if (controller != null) {
+        scroll = (await controller.getScrollY())?.toDouble() ?? scroll;
+      }
+      tabs.add(tab.copyWith(scrollPosition: scroll));
+    }
+    await ref
+        .read(sessionRepositoryProvider)
+        .save(tabs, state.activeTabIndex);
   }
 
   @override

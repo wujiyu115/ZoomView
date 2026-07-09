@@ -249,4 +249,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get logsCopied => '日志已复制';
+
+  @override
+  String get sessionRestore => '恢复标签页';
+
+  @override
+  String get sessionRestoreSubtitle => '启动时重新打开上次的标签页';
 }

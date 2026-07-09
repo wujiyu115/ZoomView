@@ -97,5 +97,7 @@
   "clearLogs": "Logs cleared",
   "exportLogs": "Logs exported",
   "noLogs": "No logs yet",
-  "logsCopied": "Logs copied"
+  "logsCopied": "Logs copied",
+  "sessionRestore": "Restore Tabs",
+  "sessionRestoreSubtitle": "Reopen last session's tabs on launch"
 }

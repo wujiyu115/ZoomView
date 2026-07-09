@@ -10,6 +10,7 @@ class SettingsModel {
   final double maxZoom;
   final bool darkMode;
   final bool devLogEnabled;
+  final bool sessionRestore;
 
   const SettingsModel({
     this.uaMode = UaMode.desktop,
@@ -21,6 +22,7 @@ class SettingsModel {
     this.maxZoom = 3.0,
     this.darkMode = true,
     this.devLogEnabled = false,
+    this.sessionRestore = true,
   });
 
   SettingsModel copyWith({
@@ -33,6 +35,7 @@ class SettingsModel {
     double? maxZoom,
     bool? darkMode,
     bool? devLogEnabled,
+    bool? sessionRestore,
   }) {
     return SettingsModel(
       uaMode: uaMode ?? this.uaMode,
@@ -44,6 +47,7 @@ class SettingsModel {
       maxZoom: maxZoom ?? this.maxZoom,
       darkMode: darkMode ?? this.darkMode,
       devLogEnabled: devLogEnabled ?? this.devLogEnabled,
+      sessionRestore: sessionRestore ?? this.sessionRestore,
     );
   }
 
@@ -58,6 +62,7 @@ class SettingsModel {
       maxZoom: double.tryParse(map['max_zoom'] ?? '') ?? 3.0,
       darkMode: map['dark_mode'] != 'false',
       devLogEnabled: map['dev_log_enabled'] == 'true',
+      sessionRestore: map['session_restore'] != 'false',
     );
   }
 }
