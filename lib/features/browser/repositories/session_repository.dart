@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:zoomview/core/database/database_helper.dart';
 import 'package:zoomview/core/logger/app_logger.dart';
@@ -54,3 +55,7 @@ class SessionRepository {
         where: 'key IN (?, ?)', whereArgs: [_tabsKey, _activeKey]);
   }
 }
+
+final sessionRepositoryProvider = Provider<SessionRepository>((ref) {
+  return SessionRepository(DatabaseHelper.instance);
+});
