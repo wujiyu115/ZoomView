@@ -46,4 +46,22 @@ class TabModel {
       createdAt: createdAt,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'url': url,
+        'title': title,
+        'zoomLevel': zoomLevel,
+        'scrollPosition': scrollPosition,
+      };
+
+  factory TabModel.fromJson(Map<String, dynamic> json) {
+    final url = json['url'] as String? ?? '';
+    return TabModel(
+      url: url,
+      title: json['title'] as String? ?? '',
+      zoomLevel: (json['zoomLevel'] as num?)?.toDouble() ?? 1.0,
+      scrollPosition: (json['scrollPosition'] as num?)?.toDouble() ?? 0,
+      showStartPage: url.isEmpty,
+    );
+  }
 }
