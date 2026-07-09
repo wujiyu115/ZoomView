@@ -49,6 +49,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
     WidgetsBinding.instance.addObserver(this);
     Future.microtask(() async {
       await ref.read(settingsProvider.notifier).load();
+      if (!mounted) return;
       if (!ref.read(settingsProvider).sessionRestore) return;
       final data = await ref.read(sessionRepositoryProvider).load();
       if (data != null) {

@@ -50,4 +50,11 @@ void main() {
     await repo.clear();
     expect(await repo.load(), isNull);
   });
+
+  test('load returns null on malformed json', () async {
+    final db = await dbHelper.database;
+    await db.insert('settings', {'key': 'session_tabs', 'value': '{not json'},
+        conflictAlgorithm: ConflictAlgorithm.replace);
+    expect(await repo.load(), isNull);
+  });
 }
