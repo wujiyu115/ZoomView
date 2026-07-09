@@ -30,6 +30,7 @@ void main() {
     expect(settings.viewportWidth, 1920);
     expect(settings.defaultZoom, 1.0);
     expect(settings.darkMode, true);
+    expect(settings.sessionRestore, true);
   });
 
   test('save and load round-trips correctly', () async {
@@ -45,5 +46,11 @@ void main() {
     await repo.set('home_url', 'https://changed.com');
     final settings = await repo.loadAll();
     expect(settings.homeUrl, 'https://changed.com');
+  });
+
+  test('session_restore false round-trips', () async {
+    await repo.set('session_restore', 'false');
+    final settings = await repo.loadAll();
+    expect(settings.sessionRestore, false);
   });
 }

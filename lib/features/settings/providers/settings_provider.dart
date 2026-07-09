@@ -69,4 +69,9 @@ class SettingsNotifier extends Notifier<SettingsModel> {
     AppLogger.instance.enabled = enabled;
     state = state.copyWith(devLogEnabled: enabled);
   }
+
+  Future<void> setSessionRestore(bool enabled) async {
+    await _repo.set('session_restore', enabled.toString());
+    state = state.copyWith(sessionRestore: enabled);
+  }
 }

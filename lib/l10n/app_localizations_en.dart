@@ -250,4 +250,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get logsCopied => 'Logs copied';
+
+  @override
+  String get sessionRestore => 'Restore Tabs';
+
+  @override
+  String get sessionRestoreSubtitle => 'Reopen last session\'s tabs on launch';
 }
