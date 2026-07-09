@@ -43,6 +43,12 @@ class BrowserNotifier extends Notifier<BrowserState> {
     );
   }
 
+  void restoreTabs(List<TabModel> tabs, int activeIndex) {
+    if (tabs.isEmpty) return;
+    final index = activeIndex.clamp(0, tabs.length - 1);
+    state = BrowserState(tabs: tabs, activeTabIndex: index);
+  }
+
   void addTab(String url, {bool showStartPage = false}) {
     final newTab = TabModel(url: url, showStartPage: showStartPage);
     final newTabs = [...state.tabs, newTab];

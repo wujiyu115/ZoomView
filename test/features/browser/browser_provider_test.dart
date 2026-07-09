@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zoomview/features/browser/providers/browser_provider.dart';
+import 'package:zoomview/features/browser/models/tab_model.dart';
 
 void main() {
   late ProviderContainer container;
@@ -61,5 +62,27 @@ void main() {
   test('updateTitle changes tab title', () {
     container.read(browserProvider.notifier).updateTitle(0, 'New Title');
     expect(container.read(browserProvider).tabs[0].title, 'New Title');
+  });
+
+  test('restoreTabs replaces state with given tabs and index', () {
+    container.read(browserProvider.notifier).restoreTabs([
+      TabModel(url: 'https://a.com'),
+      TabModel(url: 'https://b.com'),
+    ], 1);
+    final state = container.read(browserProvider);
+    expect(state.tabs.length, 2);
+    expect(state.activeTabIndex, 1);
+    expect(state.tabs[1].url, 'https://b.com');
+  });
+
+  test('restoreTabs clamps out-of-range activeIndex', () {
+    container.read(browserProvider.notifier)
+        .restoreTabs([TabModel(url: 'https://a.com')], 5);
+    expect(container.read(browserProvider).activeTabIndex, 0);
+  });
+
+  test('restoreTabs ignores empty list', () {
+    container.read(browserProvider.notifier).restoreTabs([], 0);
+    expect(container.read(browserProvider).tabs.length, 1);
   });
 }
