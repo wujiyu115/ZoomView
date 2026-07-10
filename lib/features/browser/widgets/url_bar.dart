@@ -139,7 +139,7 @@ class _UrlBarState extends State<UrlBar> {
     final colors = context.appColors;
     final renderBox = context.findRenderObject() as RenderBox;
     return Positioned(
-      width: MediaQuery.of(context).size.width - 32,
+      width: MediaQuery.of(context).size.width - 10,
       child: CompositedTransformFollower(
         link: _layerLink,
         showWhenUnlinked: false,
@@ -214,7 +214,7 @@ class _UrlBarState extends State<UrlBar> {
         CompositedTransformTarget(
           link: _layerLink,
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
+            margin: const EdgeInsets.symmetric(horizontal: 5),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
             decoration: BoxDecoration(
               color: colors.urlBg,
@@ -274,7 +274,7 @@ class _UrlBarState extends State<UrlBar> {
         ),
         if (widget.isLoading)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 5),
             child: LinearProgressIndicator(
               value: widget.progress,
               minHeight: 2,
