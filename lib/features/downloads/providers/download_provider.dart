@@ -182,6 +182,20 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
 
   // --- Download entry point ---
 
+  bool _looksLikeZipSource(Uri uri) {
+    final host = uri.host;
+    final path = uri.path.toLowerCase();
+    if (host == 'github.com') {
+      if (path.contains('/releases/download/')) return true;
+      if (path.contains('/archive/')) return true;
+      if (path.contains('/actions/') && path.contains('/artifacts/')) return true;
+      if (path.contains('/suites/') && path.contains('/artifacts/')) return true;
+    }
+    if (host == 'codeload.github.com') return true;
+    if (host.endsWith('.githubusercontent.com')) return true;
+    return false;
+  }
+
   Future<void> startDownload(String url, String fileName) async {
     final dir = Platform.isAndroid
         ? await getExternalStorageDirectory()
@@ -191,7 +205,7 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
 
     if (!fileName.contains('.')) {
       final uri = Uri.tryParse(url);
-      if (uri != null && uri.host == 'github.com') {
+      if (uri != null && _looksLikeZipSource(uri)) {
         fileName = '$fileName.zip';
       }
     }
@@ -209,6 +223,7 @@ class DownloadNotifier extends Notifier<List<DownloadModel>> {
     );
 
     await _repo.updateStatus(id, DownloadStatus.downloading);
+    await load();
 
     if (Platform.isIOS) {
       await _downloadWithDart(id, url, '$savePath/$fileName');

@@ -74,8 +74,47 @@ class _DownloadScreenState extends ConsumerState<DownloadScreen> {
       return;
     }
     await SharePlus.instance.share(
-      ShareParams(files: [XFile(dl.filePath)]),
+      ShareParams(
+        files: [XFile(dl.filePath, mimeType: _mimeTypeFor(dl.filePath))],
+      ),
     );
+  }
+
+  String? _mimeTypeFor(String path) {
+    final dot = path.lastIndexOf('.');
+    if (dot < 0) return null;
+    final ext = path.substring(dot + 1).toLowerCase();
+    const map = {
+      'zip': 'application/zip',
+      'gz': 'application/gzip',
+      'tgz': 'application/gzip',
+      'bz2': 'application/x-bzip2',
+      'xz': 'application/x-xz',
+      'rar': 'application/vnd.rar',
+      '7z': 'application/x-7z-compressed',
+      'tar': 'application/x-tar',
+      'apk': 'application/vnd.android.package-archive',
+      'ipa': 'application/octet-stream',
+      'dmg': 'application/x-apple-diskimage',
+      'exe': 'application/vnd.microsoft.portable-executable',
+      'msi': 'application/x-msi',
+      'pkg': 'application/octet-stream',
+      'deb': 'application/vnd.debian.binary-package',
+      'rpm': 'application/x-rpm',
+      'iso': 'application/x-iso9660-image',
+      'img': 'application/octet-stream',
+      'bin': 'application/octet-stream',
+      'pdf': 'application/pdf',
+      'png': 'image/png',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'gif': 'image/gif',
+      'mp4': 'video/mp4',
+      'mp3': 'audio/mpeg',
+      'txt': 'text/plain',
+      'json': 'application/json',
+    };
+    return map[ext];
   }
 }
 
