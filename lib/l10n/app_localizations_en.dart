@@ -256,4 +256,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sessionRestoreSubtitle => 'Reopen last session\'s tabs on launch';
+
+  @override
+  String get showZoomBar => 'Show Zoom Bar';
+
+  @override
+  String get showZoomBarSubtitle =>
+      'Show the zoom control at the bottom of the browser';
 }

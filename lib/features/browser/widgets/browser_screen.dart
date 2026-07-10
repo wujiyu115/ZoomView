@@ -240,7 +240,7 @@ class _BrowserScreenState extends ConsumerState<BrowserScreen>
               },
             ),
           ),
-          if (!_isFullscreen)
+          if (!_isFullscreen && settings.showZoomBar)
             ZoomSlider(
               zoomLevel: browserState.activeTab.zoomLevel,
               minZoom: settings.minZoom,

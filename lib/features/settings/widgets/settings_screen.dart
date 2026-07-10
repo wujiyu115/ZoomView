@@ -90,6 +90,18 @@ class SettingsScreen extends ConsumerWidget {
                         title: l.defaultZoom,
                         value: l.zoomPercent((settings.defaultZoom * 100).round()),
                       ),
+                      _SettingsRow(
+                        icon: Icons.height,
+                        iconColor: const Color(0xFF0969DA),
+                        title: l.showZoomBar,
+                        subtitle: l.showZoomBarSubtitle,
+                        trailing: IosToggle(
+                          value: settings.showZoomBar,
+                          onChanged: (v) => ref
+                              .read(settingsProvider.notifier)
+                              .setShowZoomBar(v),
+                        ),
+                      ),
                     ],
                   ),
                   SectionHeader(label: l.privacy, useAccentColor: true),

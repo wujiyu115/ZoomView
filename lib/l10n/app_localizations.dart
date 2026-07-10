@@ -577,6 +577,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reopen last session\'s tabs on launch'**
   String get sessionRestoreSubtitle;
+
+  /// No description provided for @showZoomBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Zoom Bar'**
+  String get showZoomBar;
+
+  /// No description provided for @showZoomBarSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the zoom control at the bottom of the browser'**
+  String get showZoomBarSubtitle;
 }
 
 class _AppLocalizationsDelegate

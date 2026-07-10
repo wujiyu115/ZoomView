@@ -79,5 +79,7 @@
   "noLogs": "暂无日志",
   "logsCopied": "日志已复制",
   "sessionRestore": "恢复标签页",
-  "sessionRestoreSubtitle": "启动时重新打开上次的标签页"
+  "sessionRestoreSubtitle": "启动时重新打开上次的标签页",
+  "showZoomBar": "显示缩放栏",
+  "showZoomBarSubtitle": "在浏览器底部显示缩放控件"
 }

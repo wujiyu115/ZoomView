@@ -99,5 +99,7 @@
   "noLogs": "No logs yet",
   "logsCopied": "Logs copied",
   "sessionRestore": "Restore Tabs",
-  "sessionRestoreSubtitle": "Reopen last session's tabs on launch"
+  "sessionRestoreSubtitle": "Reopen last session's tabs on launch",
+  "showZoomBar": "Show Zoom Bar",
+  "showZoomBarSubtitle": "Show the zoom control at the bottom of the browser"
 }

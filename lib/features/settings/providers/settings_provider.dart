@@ -74,4 +74,9 @@ class SettingsNotifier extends Notifier<SettingsModel> {
     await _repo.set('session_restore', enabled.toString());
     state = state.copyWith(sessionRestore: enabled);
   }
+
+  Future<void> setShowZoomBar(bool enabled) async {
+    await _repo.set('show_zoom_bar', enabled.toString());
+    state = state.copyWith(showZoomBar: enabled);
+  }
 }

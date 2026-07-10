@@ -11,6 +11,7 @@ class SettingsModel {
   final bool darkMode;
   final bool devLogEnabled;
   final bool sessionRestore;
+  final bool showZoomBar;
 
   const SettingsModel({
     this.uaMode = UaMode.desktop,
@@ -23,6 +24,7 @@ class SettingsModel {
     this.darkMode = true,
     this.devLogEnabled = false,
     this.sessionRestore = true,
+    this.showZoomBar = true,
   });
 
   SettingsModel copyWith({
@@ -36,6 +38,7 @@ class SettingsModel {
     bool? darkMode,
     bool? devLogEnabled,
     bool? sessionRestore,
+    bool? showZoomBar,
   }) {
     return SettingsModel(
       uaMode: uaMode ?? this.uaMode,
@@ -48,6 +51,7 @@ class SettingsModel {
       darkMode: darkMode ?? this.darkMode,
       devLogEnabled: devLogEnabled ?? this.devLogEnabled,
       sessionRestore: sessionRestore ?? this.sessionRestore,
+      showZoomBar: showZoomBar ?? this.showZoomBar,
     );
   }
 
@@ -63,6 +67,7 @@ class SettingsModel {
       darkMode: map['dark_mode'] != 'false',
       devLogEnabled: map['dev_log_enabled'] == 'true',
       sessionRestore: map['session_restore'] != 'false',
+      showZoomBar: map['show_zoom_bar'] != 'false',
     );
   }
 }
