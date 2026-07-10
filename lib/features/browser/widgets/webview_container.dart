@@ -271,8 +271,20 @@ class _WebViewContainerState extends ConsumerState<WebViewContainer> {
               .updateUrl(widget.tabIndex, url.toString());
         }
       },
+      onUpdateVisitedHistory: (controller, url, isReload) {
+        if (url != null) {
+          ref
+              .read(browserProvider.notifier)
+              .updateUrl(widget.tabIndex, url.toString());
+        }
+      },
       onLoadStop: (controller, url) async {
         ref.read(browserProvider.notifier).setLoading(false);
+        if (url != null) {
+          ref
+              .read(browserProvider.notifier)
+              .updateUrl(widget.tabIndex, url.toString());
+        }
         final title = await controller.getTitle() ?? '';
         ref.read(browserProvider.notifier).updateTitle(widget.tabIndex, title);
 
