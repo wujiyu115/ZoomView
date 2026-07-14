@@ -72,6 +72,25 @@ class _UrlBarState extends State<UrlBar> {
     super.dispose();
   }
 
+  String _normalizeUrl(String input) {
+    if (input.startsWith('http://') || input.startsWith('https://')) {
+      return input;
+    }
+    final host = input.split('/').first.split(':').first;
+    final isLocal = host == 'localhost' ||
+        host == '127.0.0.1' ||
+        host == '0.0.0.0' ||
+        host.startsWith('192.168.') ||
+        host.startsWith('10.') ||
+        RegExp(r'^172\.(1[6-9]|2\d|3[01])\.').hasMatch(host);
+    final hasPort = RegExp(r':\d').hasMatch(input);
+    final looksLikeHost = input.contains('.') && !input.contains(' ');
+    if (isLocal || hasPort || looksLikeHost) {
+      return '${isLocal ? 'http' : 'https'}://$input';
+    }
+    return 'https://www.google.com/search?q=${Uri.encodeComponent(input)}';
+  }
+
   void _onSearchChanged(String query) {
     _debounce?.cancel();
     if (query.trim().isEmpty) {
@@ -245,17 +264,7 @@ class _UrlBarState extends State<UrlBar> {
                     onSubmitted: (value) {
                       _dismissOverlay();
                       setState(() => _isEditing = false);
-                      var url = value.trim();
-                      if (!url.startsWith('http://') &&
-                          !url.startsWith('https://')) {
-                        if (url.contains('.') && !url.contains(' ')) {
-                          url = 'https://$url';
-                        } else {
-                          url =
-                              'https://www.google.com/search?q=${Uri.encodeComponent(url)}';
-                        }
-                      }
-                      widget.onSubmitted(url);
+                      widget.onSubmitted(_normalizeUrl(value.trim()));
                     },
                   ),
                 ),
