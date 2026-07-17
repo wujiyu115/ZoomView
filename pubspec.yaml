@@ -69,6 +69,7 @@ flutter_launcher_icons:
   adaptive_icon_background: "#1E1E1E"
   adaptive_icon_foreground: "assets/icon/icon.png"
   remove_alpha_ios: true
+  background_color_ios: "#4FA8FC"
 
 flutter:
   generate: true
